@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MotionCard } from "@/components/motion/MotionCard";
 import { StreakWidget } from "@/components/widgets/StreakWidget";
 import { WellnessScore } from "@/components/widgets/WellnessScore";
@@ -28,7 +27,7 @@ const Dashboard = () => {
   };
 
   return (
-    <DashboardLayout>
+    <>
       {/* Header */}
       <motion.div
         className="mb-8"
@@ -137,7 +136,7 @@ const Dashboard = () => {
           <YearHeatmap />
         </MotionCard>
       </div>
-    </DashboardLayout>
+    </>
   );
 };
 
