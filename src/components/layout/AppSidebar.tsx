@@ -8,11 +8,9 @@ import {
   Moon,
   Heart,
   Brain,
-  MessageCircle,
   Settings,
   ChevronLeft,
   ChevronRight,
-  Flame,
   TrendingUp,
 } from "lucide-react";
 
@@ -20,8 +18,7 @@ const navItems = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { name: "Vitals", path: "/vitals", icon: Activity },
   { name: "Sleep", path: "/sleep", icon: Moon },
-  { name: "Mood", path: "/mood", icon: Heart },
-  { name: "Cravings", path: "/cravings", icon: Flame },
+  { name: "Journal", path: "/journal", icon: Heart },
   { name: "Insights", path: "/insights", icon: TrendingUp },
   { name: "Mind", path: "/mind", icon: Brain },
 ];

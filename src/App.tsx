@@ -8,8 +8,8 @@ import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SleepPage from "./pages/SleepPage";
-import ChatPage from "./pages/ChatPage";
-import JournalPage from "./pages/JournalPage";
+import MindPage from "./pages/MindPage";
+import UnifiedJournalPage from "./pages/UnifiedJournalPage";
 import VitalsPage from "./pages/VitalsPage";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -35,10 +35,9 @@ const App = () => (
           <Route path="/dashboard" element={<WithDashboardLayout><Dashboard /></WithDashboardLayout>} />
           <Route path="/vitals" element={<WithDashboardLayout><VitalsPage /></WithDashboardLayout>} />
           <Route path="/sleep" element={<WithDashboardLayout><SleepPage /></WithDashboardLayout>} />
-          <Route path="/mood" element={<WithDashboardLayout><JournalPage /></WithDashboardLayout>} />
-          <Route path="/cravings" element={<WithDashboardLayout><JournalPage /></WithDashboardLayout>} />
+          <Route path="/journal" element={<WithDashboardLayout><UnifiedJournalPage /></WithDashboardLayout>} />
           <Route path="/insights" element={<WithDashboardLayout><AnalyticsPage /></WithDashboardLayout>} />
-          <Route path="/mind" element={<WithDashboardLayout><ChatPage /></WithDashboardLayout>} />
+          <Route path="/mind" element={<WithDashboardLayout><MindPage /></WithDashboardLayout>} />
           <Route path="/settings" element={<WithDashboardLayout><Dashboard /></WithDashboardLayout>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
