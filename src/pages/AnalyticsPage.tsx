@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { MotionCard } from "@/components/motion/MotionCard";
 import { YearHeatmap } from "@/components/charts/YearHeatmap";
+import { PredictionCard } from "@/components/widgets/PredictionCard";
 import { useData, getLogsForDays } from "@/hooks/useData";
-import { TrendingUp, TrendingDown, Brain, Moon, Flame, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Brain, Moon, Flame, Target, Sparkles } from "lucide-react";
 import {
   ComposedChart,
   Bar,
@@ -22,7 +23,7 @@ const pageVariants = {
 };
 
 const AnalyticsPage = () => {
-  const { logs } = useData();
+  const { logs, isLoading } = useData();
   const last14Days = getLogsForDays(logs, 14);
 
   // Prepare chart data
@@ -122,7 +123,10 @@ const AnalyticsPage = () => {
         </MotionCard>
       </div>
 
-      {/* Correlation Engine Chart */}
+      {/* AI Prediction Card */}
+      <MotionCard className="p-0" delay={4} hoverLift={false}>
+        <PredictionCard logs={logs} className="border-0 shadow-none bg-transparent" />
+      </MotionCard>
       <MotionCard className="p-6" delay={4} hoverLift={false}>
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">

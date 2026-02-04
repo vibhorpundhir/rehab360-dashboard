@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ResponsiveContainer,
@@ -6,17 +7,48 @@ import {
   PolarAngleAxis,
   Radar,
 } from "recharts";
-
-const cravingData = [
-  { trigger: "Morning", value: 30 },
-  { trigger: "Midday", value: 45 },
-  { trigger: "Afternoon", value: 70 },
-  { trigger: "Evening", value: 85 },
-  { trigger: "Night", value: 60 },
-  { trigger: "Late Night", value: 40 },
-];
+import { useData, getCravingRiskByTime } from "@/hooks/useData";
 
 export const CravingRadar = () => {
+  const { logs } = useData();
+
+  // Calculate craving risk by time of day from real data
+  const chartData = useMemo(() => {
+    const riskByTime = getCravingRiskByTime(logs);
+    
+    // Map to chart format with all time periods
+    const timeMapping: Record<string, string> = {
+      "Morning": "Morning",
+      "Afternoon": "Afternoon", 
+      "Evening": "Evening",
+      "Night": "Night",
+    };
+
+    return Object.entries(timeMapping).map(([key, trigger]) => {
+      const found = riskByTime.find(r => r.time === key);
+      return {
+        trigger,
+        value: found?.risk || 0,
+      };
+    });
+  }, [logs]);
+
+  // Find highest risk period
+  const highestRisk = useMemo(() => {
+    if (chartData.length === 0) return null;
+    return chartData.reduce((max, curr) => 
+      curr.value > max.value ? curr : max
+    , chartData[0]);
+  }, [chartData]);
+
+  // Use mock data if no real data
+  const displayData = chartData.some(d => d.value > 0) ? chartData : [
+    { trigger: "Morning", value: 30 },
+    { trigger: "Afternoon", value: 70 },
+    { trigger: "Evening", value: 85 },
+    { trigger: "Night", value: 40 },
+  ];
+
   return (
     <motion.div
       className="h-full"
@@ -30,27 +62,35 @@ export const CravingRadar = () => {
       </div>
 
       <ResponsiveContainer width="100%" height={250}>
-        <RadarChart data={cravingData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
-          <PolarGrid stroke="hsl(217, 33%, 25%)" />
+        <RadarChart data={displayData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+          <PolarGrid stroke="hsl(var(--border))" />
           <PolarAngleAxis
             dataKey="trigger"
-            tick={{ fill: "hsl(215, 20%, 65%)", fontSize: 11 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
           />
           <Radar
             name="Craving"
             dataKey="value"
-            stroke="hsl(350, 89%, 60%)"
-            fill="hsl(350, 89%, 60%)"
+            stroke="hsl(var(--alert))"
+            fill="hsl(var(--alert))"
             fillOpacity={0.3}
             strokeWidth={2}
+            isAnimationActive={true}
+            animationDuration={1000}
           />
         </RadarChart>
       </ResponsiveContainer>
 
       <div className="mt-2 text-center">
-        <p className="text-sm text-alert">
-          ⚠️ Highest risk: <span className="font-semibold">Evening (5-8 PM)</span>
-        </p>
+        {highestRisk && highestRisk.value > 0 ? (
+          <p className="text-sm text-alert">
+            ⚠️ Highest risk: <span className="font-semibold">{highestRisk.trigger}</span>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Log more entries to see patterns
+          </p>
+        )}
       </div>
     </motion.div>
   );

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ResponsiveContainer,
@@ -8,16 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-
-const sleepData = [
-  { day: "Mon", hours: 6.5, quality: 65 },
-  { day: "Tue", hours: 7.2, quality: 78 },
-  { day: "Wed", hours: 5.8, quality: 52 },
-  { day: "Thu", hours: 8.0, quality: 88 },
-  { day: "Fri", hours: 7.5, quality: 82 },
-  { day: "Sat", hours: 8.5, quality: 90 },
-  { day: "Sun", hours: 7.0, quality: 75 },
-];
+import { useData, getLogsForDays } from "@/hooks/useData";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -25,11 +17,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="glass-card p-3 border border-white/10">
         <p className="text-foreground font-semibold">{label}</p>
         <p className="text-calm text-sm">
-          {payload[0].value} hours
+          {payload[0]?.value?.toFixed(1)} hours
         </p>
-        <p className="text-primary text-sm">
-          Quality: {payload[1]?.value || sleepData.find(d => d.day === label)?.quality}%
-        </p>
+        {payload[1] && (
+          <p className="text-primary text-sm">
+            Quality: {payload[1].value}%
+          </p>
+        )}
       </div>
     );
   }
@@ -37,6 +31,37 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const SleepChart = () => {
+  const { logs } = useData();
+  const last7Days = getLogsForDays(logs, 7);
+
+  // Transform logs to chart data
+  const chartData = useMemo(() => {
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    
+    return last7Days
+      .map((log) => {
+        const date = new Date(log.log_date);
+        return {
+          day: dayNames[date.getDay()],
+          hours: log.sleep_hours || 0,
+          quality: log.sleep_quality || 0,
+          date: log.log_date,
+        };
+      })
+      .reverse(); // Show oldest first
+  }, [last7Days]);
+
+  // Use mock data if no real data
+  const displayData = chartData.length > 0 ? chartData : [
+    { day: "Mon", hours: 6.5, quality: 65 },
+    { day: "Tue", hours: 7.2, quality: 78 },
+    { day: "Wed", hours: 5.8, quality: 52 },
+    { day: "Thu", hours: 8.0, quality: 88 },
+    { day: "Fri", hours: 7.5, quality: 82 },
+    { day: "Sat", hours: 8.5, quality: 90 },
+    { day: "Sun", hours: 7.0, quality: 75 },
+  ];
+
   return (
     <motion.div
       className="h-full"
@@ -59,36 +84,38 @@ export const SleepChart = () => {
       </div>
 
       <ResponsiveContainer width="100%" height={200}>
-        <AreaChart data={sleepData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <AreaChart data={displayData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="sleepGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(186, 93%, 44%)" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="hsl(186, 93%, 44%)" stopOpacity={0} />
+              <stop offset="5%" stopColor="hsl(var(--calm))" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="hsl(var(--calm))" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="qualityGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(262, 83%, 66%)" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="hsl(262, 83%, 66%)" stopOpacity={0} />
+              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 33%, 17%)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
           <XAxis
             dataKey="day"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "hsl(215, 20%, 65%)", fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "hsl(215, 20%, 65%)", fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Area
             type="monotone"
             dataKey="hours"
-            stroke="hsl(186, 93%, 44%)"
+            stroke="hsl(var(--calm))"
             strokeWidth={2}
             fill="url(#sleepGradient)"
+            isAnimationActive={true}
+            animationDuration={1000}
           />
         </AreaChart>
       </ResponsiveContainer>
