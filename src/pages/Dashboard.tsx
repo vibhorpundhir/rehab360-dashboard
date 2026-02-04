@@ -8,10 +8,15 @@ import { MoodGrid } from "@/components/widgets/MoodGrid";
 import { SleepChart } from "@/components/charts/SleepChart";
 import { CravingRadar } from "@/components/charts/CravingRadar";
 import { YearHeatmap } from "@/components/charts/YearHeatmap";
+import { PredictionCard } from "@/components/widgets/PredictionCard";
 import { TrendingUp, Calendar, Target, Award } from "lucide-react";
+import { useData, getLogsForDays } from "@/hooks/useData";
 
 const Dashboard = () => {
   const [selectedMood, setSelectedMood] = useState<string>();
+  const { logs, addLog } = useData();
+  const last7Days = getLogsForDays(logs, 7);
+  
   const userName = "Alex";
   const currentHour = new Date().getHours();
   
@@ -21,9 +26,26 @@ const Dashboard = () => {
     ? "Good afternoon" 
     : "Good evening";
 
+  // Calculate real stats from logs
+  const avgSleepQuality = last7Days.length > 0 
+    ? Math.round(last7Days.reduce((sum, log) => sum + (log.sleep_quality || 0), 0) / last7Days.length)
+    : 0;
+  
+  const weeklyProgress = last7Days.length > 0 
+    ? Math.round((last7Days.filter(log => (log.craving_intensity || 5) < 5).length / last7Days.length) * 100)
+    : 0;
+
   const handleQuickLog = (id: string) => {
-    console.log("Logging:", id);
-    // TODO: Open modal for specific log type
+    console.log("Quick logging:", id);
+    // Quick log with default values
+    const today = new Date().toISOString().split("T")[0];
+    if (id === "sleep") {
+      addLog({ log_date: today, sleep_hours: 7, sleep_quality: 70 });
+    } else if (id === "mood") {
+      addLog({ log_date: today, mood_tag: "calm" });
+    } else if (id === "craving") {
+      addLog({ log_date: today, craving_intensity: 3 });
+    }
   };
 
   return (
@@ -45,35 +67,46 @@ const Dashboard = () => {
 
       {/* Bento Grid */}
       <div className="bento-grid">
-        {/* Wellness Score - Large */}
+        {/* AI Prediction Card - Featured */}
         <MotionCard
-          className="bento-card-md row-span-2 flex items-center justify-center"
+          className="bento-card-lg row-span-1"
           delay={0}
           hoverLift={false}
         >
-          <WellnessScore score={78} />
+          <PredictionCard logs={logs} />
+        </MotionCard>
+
+        {/* Wellness Score */}
+        <MotionCard
+          className="bento-card-md row-span-2 flex items-center justify-center"
+          delay={1}
+          hoverLift={false}
+        >
+          <WellnessScore score={avgSleepQuality || 78} />
         </MotionCard>
 
         {/* Streak Widget */}
-        <MotionCard className="bento-card-sm" delay={1}>
-          <StreakWidget days={23} />
+        <MotionCard className="bento-card-sm" delay={2}>
+          <StreakWidget days={logs.length} />
         </MotionCard>
 
-        {/* Quick Stats */}
-        <MotionCard className="bento-card-sm" delay={2}>
+        {/* Quick Stats - Now with real data */}
+        <MotionCard className="bento-card-sm" delay={3}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">+15%</p>
-              <p className="text-sm text-muted-foreground">Weekly Progress</p>
+              <p className="text-2xl font-bold text-foreground">
+                {weeklyProgress > 0 ? `+${weeklyProgress}%` : "0%"}
+              </p>
+              <p className="text-sm text-muted-foreground">Low Craving Days</p>
             </div>
           </div>
         </MotionCard>
 
         {/* Today's Goals */}
-        <MotionCard className="bento-card-sm" delay={3}>
+        <MotionCard className="bento-card-sm" delay={4}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
               <Target className="w-6 h-6 text-primary" />
@@ -85,41 +118,41 @@ const Dashboard = () => {
           </div>
         </MotionCard>
 
-        {/* Days Logged */}
-        <MotionCard className="bento-card-sm" delay={4}>
+        {/* Days Logged - Real count */}
+        <MotionCard className="bento-card-sm" delay={5}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-calm/20 flex items-center justify-center">
               <Calendar className="w-6 h-6 text-calm" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">156</p>
+              <p className="text-2xl font-bold text-foreground">{logs.length}</p>
               <p className="text-sm text-muted-foreground">Days Logged</p>
             </div>
           </div>
         </MotionCard>
 
         {/* Quick Logger */}
-        <MotionCard className="bento-card-lg" delay={5} hoverLift={false}>
+        <MotionCard className="bento-card-lg" delay={6} hoverLift={false}>
           <QuickLogger onLog={handleQuickLog} />
         </MotionCard>
 
         {/* Mood Grid */}
-        <MotionCard className="bento-card-lg" delay={6} hoverLift={false}>
+        <MotionCard className="bento-card-lg" delay={7} hoverLift={false}>
           <MoodGrid onMoodSelect={setSelectedMood} selectedMood={selectedMood} />
         </MotionCard>
 
         {/* Sleep Chart */}
-        <MotionCard className="bento-card-lg" delay={7} hoverLift={false}>
+        <MotionCard className="bento-card-lg" delay={8} hoverLift={false}>
           <SleepChart />
         </MotionCard>
 
         {/* Craving Radar */}
-        <MotionCard className="bento-card-md" delay={8} hoverLift={false}>
+        <MotionCard className="bento-card-md" delay={9} hoverLift={false}>
           <CravingRadar />
         </MotionCard>
 
         {/* Achievements */}
-        <MotionCard className="bento-card-sm" delay={9}>
+        <MotionCard className="bento-card-sm" delay={10}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
               <Award className="w-6 h-6 text-warning" />
@@ -132,7 +165,7 @@ const Dashboard = () => {
         </MotionCard>
 
         {/* Year Heatmap */}
-        <MotionCard className="bento-card-full" delay={10} hoverLift={false}>
+        <MotionCard className="bento-card-full" delay={11} hoverLift={false}>
           <YearHeatmap />
         </MotionCard>
       </div>
