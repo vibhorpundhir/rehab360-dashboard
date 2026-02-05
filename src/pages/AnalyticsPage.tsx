@@ -1,20 +1,11 @@
 import { motion } from "framer-motion";
 import { MotionCard } from "@/components/motion/MotionCard";
 import { YearHeatmap } from "@/components/charts/YearHeatmap";
+import { CorrelationChart } from "@/components/charts/CorrelationChart";
+import { InsightEngine } from "@/components/widgets/InsightEngine";
 import { PredictionCard } from "@/components/widgets/PredictionCard";
 import { useData, getLogsForDays } from "@/hooks/useData";
-import { TrendingUp, TrendingDown, Brain, Moon, Flame, Target, Sparkles } from "lucide-react";
-import {
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import { TrendingUp, Moon, Flame, Target, Activity, BarChart3 } from "lucide-react";
 
 const pageVariants = {
   initial: { x: 50, opacity: 0 },
@@ -23,28 +14,16 @@ const pageVariants = {
 };
 
 const AnalyticsPage = () => {
-  const { logs, isLoading } = useData();
+  const { logs } = useData();
   const last14Days = getLogsForDays(logs, 14);
 
-  // Prepare chart data
-  const chartData = last14Days
-    .map((log) => ({
-      date: new Date(log.log_date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      sleepQuality: log.sleep_quality || 0,
-      cravingIntensity: (log.craving_intensity || 0) * 10, // Scale to 0-100
-    }))
-    .reverse();
-
   // Calculate averages
-  const avgSleep = Math.round(
-    last14Days.reduce((sum, log) => sum + (log.sleep_quality || 0), 0) / last14Days.length
-  );
-  const avgCraving = Math.round(
-    last14Days.reduce((sum, log) => sum + (log.craving_intensity || 0), 0) / last14Days.length
-  );
+  const avgSleep = last14Days.length > 0 
+    ? Math.round(last14Days.reduce((sum, log) => sum + (log.sleep_quality || 0), 0) / last14Days.length)
+    : 0;
+  const avgCraving = last14Days.length > 0
+    ? Math.round(last14Days.reduce((sum, log) => sum + (log.craving_intensity || 0), 0) / last14Days.length)
+    : 0;
 
   // Calculate correlation insight
   const highSleepDays = last14Days.filter((l) => (l.sleep_quality || 0) >= 70);
@@ -127,83 +106,25 @@ const AnalyticsPage = () => {
       <MotionCard className="p-0" delay={4} hoverLift={false}>
         <PredictionCard logs={logs} className="border-0 shadow-none bg-transparent" />
       </MotionCard>
-      <MotionCard className="p-6" delay={4} hoverLift={false}>
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary" />
-            Correlation Engine
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Sleep Quality vs Craving Intensity (Last 14 Days)
-          </p>
-        </div>
 
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis 
-                dataKey="date" 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                domain={[0, 100]}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
-              />
-              <Legend />
-              <Bar
-                dataKey="sleepQuality"
-                name="Sleep Quality"
-                fill="hsl(var(--calm))"
-                radius={[4, 4, 0, 0]}
-                animationDuration={1500}
-              />
-              <Line
-                type="monotone"
-                dataKey="cravingIntensity"
-                name="Craving Intensity"
-                stroke="hsl(var(--alert))"
-                strokeWidth={3}
-                dot={{ fill: "hsl(var(--alert))", strokeWidth: 0, r: 4 }}
-                animationDuration={1500}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Main Grid: Correlation + Insights */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Correlation Chart - 2 columns */}
+        <MotionCard className="lg:col-span-2 p-6" delay={5} hoverLift={false}>
+          <CorrelationChart logs={logs} />
+        </MotionCard>
 
-        {/* Insight Card */}
-        <motion.div
-          className="mt-4 p-4 rounded-xl bg-success/10 border border-success/20"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <p className="text-sm text-success flex items-center gap-2">
-            <TrendingDown className="w-4 h-4" />
-            <span>
-              <strong>Insight:</strong> On days with 70%+ sleep quality, your cravings are {correlationPercent}% lower on average.
-            </span>
-          </p>
-        </motion.div>
-      </MotionCard>
+        {/* Smart Insights - 1 column */}
+        <MotionCard className="p-6" delay={6} hoverLift={false}>
+          <InsightEngine logs={logs} />
+        </MotionCard>
+      </div>
 
       {/* Year Heatmap */}
-      <MotionCard className="p-6" delay={5} hoverLift={false}>
+      <MotionCard className="p-6" delay={7} hoverLift={false}>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-success" />
             Mental Clarity Heatmap
           </h3>
           <p className="text-sm text-muted-foreground">

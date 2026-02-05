@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MotionCard } from "@/components/motion/MotionCard";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useData, calculateSleepDebt } from "@/hooks/useData";
-import { Moon, Sun, AlertTriangle, CheckCircle2, BedDouble, Clock, Zap } from "lucide-react";
+import { useData, calculateSleepDebt, getLogsForDays } from "@/hooks/useData";
+import { InsightEngine } from "@/components/widgets/InsightEngine";
+import { Moon, Sun, AlertTriangle, CheckCircle2, BedDouble, Clock, Zap, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   AreaChart,
@@ -41,14 +43,16 @@ const generateSleepStages = () => {
 };
 
 const SleepPage = () => {
-  const { addLog } = useData();
+  const { logs, addLog } = useData();
   const [bedtime, setBedtime] = useState("23:00");
   const [wakeTime, setWakeTime] = useState("07:00");
   const [quality, setQuality] = useState([70]);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [animateChart, setAnimateChart] = useState(false);
 
   const sleepStagesData = useMemo(() => generateSleepStages(), []);
+  const last7Days = getLogsForDays(logs, 7);
 
   // Calculate sleep hours
   const sleepHours = useMemo(() => {
@@ -80,9 +84,22 @@ const SleepPage = () => {
         log_date: new Date().toISOString().split("T")[0],
       });
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      setAnimateChart(true);
+      
+      // Show success toast with insight
+      toast.success("Sleep logged!", {
+        description: sleepDebt > 2 
+          ? "⚠️ Consider an earlier bedtime tonight."
+          : "✨ Great rest! Charts updated.",
+      });
+      
+      setTimeout(() => {
+        setShowSuccess(false);
+        setAnimateChart(false);
+      }, 3000);
     } catch (error) {
       console.error("Failed to save:", error);
+      toast.error("Failed to save. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -300,18 +317,36 @@ const SleepPage = () => {
         </div>
       </div>
 
-      {/* Sleep Stages Chart */}
+      {/* Smart Insights Panel */}
       <MotionCard className="p-6" delay={3} hoverLift={false}>
+        <InsightEngine logs={logs} />
+      </MotionCard>
+
+      {/* Sleep Stages Chart */}
+      <MotionCard className="p-6" delay={4} hoverLift={false}>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             Sleep Stages Analysis
+            {animateChart && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-success"
+              >
+                <Sparkles className="w-4 h-4" />
+              </motion.span>
+            )}
           </h3>
           <p className="text-sm text-muted-foreground">
             Estimated sleep architecture based on your pattern
           </p>
         </div>
 
-        <div className="h-[250px]">
+        <motion.div 
+          className="h-[250px]"
+          animate={animateChart ? { scale: [1, 1.02, 1] } : {}}
+          transition={{ duration: 0.5 }}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sleepStagesData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
@@ -343,6 +378,7 @@ const SleepPage = () => {
                 fill="hsl(var(--primary))"
                 fillOpacity={0.6}
                 name="Deep Sleep"
+                isAnimationActive={true}
                 animationDuration={1500}
               />
               <Area
@@ -353,6 +389,7 @@ const SleepPage = () => {
                 fill="hsl(var(--calm))"
                 fillOpacity={0.6}
                 name="REM"
+                isAnimationActive={true}
                 animationDuration={1500}
               />
               <Area
@@ -363,11 +400,12 @@ const SleepPage = () => {
                 fill="hsl(var(--muted-foreground))"
                 fillOpacity={0.3}
                 name="Light Sleep"
+                isAnimationActive={true}
                 animationDuration={1500}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
       </MotionCard>
     </motion.div>
   );
