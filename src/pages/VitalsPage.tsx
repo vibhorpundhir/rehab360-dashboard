@@ -3,6 +3,7 @@ import { MotionCard } from "@/components/motion/MotionCard";
 import { useData, getLogsForDays } from "@/hooks/useData";
 import { Activity, Droplets, Pill, Timer, TrendingUp, Heart } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { VitalsInputCard } from "@/components/widgets/VitalsInputCard";
 import {
   BarChart,
   Bar,
@@ -261,6 +262,9 @@ const VitalsPage = () => {
           </div>
         </div>
       </MotionCard>
+
+      {/* Vitals Input */}
+      <VitalsInputCard />
     </motion.div>
   );
 };
