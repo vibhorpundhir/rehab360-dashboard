@@ -11,6 +11,7 @@ import SleepPage from "./pages/SleepPage";
 import MindPage from "./pages/MindPage";
 import UnifiedJournalPage from "./pages/UnifiedJournalPage";
 import VitalsPage from "./pages/VitalsPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
@@ -38,7 +39,7 @@ const App = () => (
           <Route path="/journal" element={<WithDashboardLayout><UnifiedJournalPage /></WithDashboardLayout>} />
           <Route path="/insights" element={<WithDashboardLayout><AnalyticsPage /></WithDashboardLayout>} />
           <Route path="/mind" element={<WithDashboardLayout><MindPage /></WithDashboardLayout>} />
-          <Route path="/settings" element={<WithDashboardLayout><Dashboard /></WithDashboardLayout>} />
+          <Route path="/settings" element={<WithDashboardLayout><SettingsPage /></WithDashboardLayout>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

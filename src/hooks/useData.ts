@@ -14,6 +14,8 @@ interface UseDataReturn {
   refetch: () => Promise<void>;
 }
 
+const STORAGE_KEY = "rehab360_logs";
+
 // Mock data for development/demo
 const mockLogs: DailyLog[] = Array.from({ length: 14 }, (_, i) => {
   const date = new Date();
@@ -38,10 +40,33 @@ const mockLogs: DailyLog[] = Array.from({ length: 14 }, (_, i) => {
   };
 });
 
+function loadFromStorage(): DailyLog[] | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return null;
+}
+
+function saveToStorage(logs: DailyLog[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+  } catch {}
+}
+
+export function clearAllData() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 export function useData(): UseDataReturn {
-  const [logs, setLogs] = useState<DailyLog[]>(mockLogs);
+  const [logs, setLogs] = useState<DailyLog[]>(() => loadFromStorage() || mockLogs);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Persist to localStorage whenever logs change
+  useEffect(() => {
+    saveToStorage(logs);
+  }, [logs]);
 
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
