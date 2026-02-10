@@ -76,8 +76,7 @@ export function useData(): UseDataReturn {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        // Use mock data when not authenticated
-        setLogs(mockLogs);
+        // Not authenticated — keep current state (localStorage or mock)
         return;
       }
 
@@ -90,11 +89,12 @@ export function useData(): UseDataReturn {
 
       if (fetchError) throw fetchError;
       
-      setLogs(data?.length ? data : mockLogs);
+      if (data?.length) {
+        setLogs(data);
+      }
     } catch (err) {
       console.error("Error fetching logs:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch logs");
-      setLogs(mockLogs);
     } finally {
       setIsLoading(false);
     }
