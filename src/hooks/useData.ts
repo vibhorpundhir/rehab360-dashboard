@@ -101,28 +101,54 @@ export function useData(): UseDataReturn {
   }, []);
 
   const addLog = useCallback(async (log: Partial<DailyLogInsert>) => {
+    const logDate = log.log_date || new Date().toISOString().split("T")[0];
+
+    // Merge with existing same-day entry in local state (so vitals don't overwrite journal, etc.)
+    const existing = logs.find((l) => l.log_date === logDate);
+    const merged: Partial<DailyLogInsert> = {
+      ...(existing ? {
+        sleep_hours: existing.sleep_hours,
+        sleep_quality: existing.sleep_quality,
+        craving_intensity: existing.craving_intensity,
+        craving_time: existing.craving_time,
+        craving_trigger: existing.craving_trigger,
+        mood_tag: existing.mood_tag,
+        water_glasses: existing.water_glasses,
+        exercise_minutes: existing.exercise_minutes,
+        meditation_minutes: existing.meditation_minutes,
+        took_meds: existing.took_meds,
+        notes: existing.notes,
+      } : {}),
+      // New values override existing
+      ...Object.fromEntries(Object.entries(log).filter(([, v]) => v !== undefined)),
+      log_date: logDate,
+    };
+
     // Optimistic update
     const tempId = `temp-${Date.now()}`;
     const optimisticLog: DailyLog = {
-      id: tempId,
-      user_id: "pending",
-      log_date: log.log_date || new Date().toISOString().split("T")[0],
-      sleep_hours: log.sleep_hours ?? null,
-      sleep_quality: log.sleep_quality ?? null,
-      craving_intensity: log.craving_intensity ?? null,
-      craving_time: log.craving_time ?? null,
-      craving_trigger: log.craving_trigger ?? null,
-      mood_tag: log.mood_tag ?? null,
-      water_glasses: log.water_glasses ?? 0,
-      exercise_minutes: log.exercise_minutes ?? 0,
-      meditation_minutes: log.meditation_minutes ?? 0,
-      took_meds: log.took_meds ?? false,
-      notes: log.notes ?? null,
-      created_at: new Date().toISOString(),
+      id: existing?.id || tempId,
+      user_id: existing?.user_id || "pending",
+      log_date: logDate,
+      sleep_hours: (merged.sleep_hours as number) ?? null,
+      sleep_quality: (merged.sleep_quality as number) ?? null,
+      craving_intensity: (merged.craving_intensity as number) ?? null,
+      craving_time: (merged.craving_time as string) ?? null,
+      craving_trigger: (merged.craving_trigger as string) ?? null,
+      mood_tag: (merged.mood_tag as string) ?? null,
+      water_glasses: (merged.water_glasses as number) ?? 0,
+      exercise_minutes: (merged.exercise_minutes as number) ?? 0,
+      meditation_minutes: (merged.meditation_minutes as number) ?? 0,
+      took_meds: (merged.took_meds as boolean) ?? false,
+      notes: (merged.notes as string) ?? null,
+      created_at: existing?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    setLogs((prev) => [optimisticLog, ...prev]);
+    setLogs((prev) => {
+      const without = prev.filter((l) => l.log_date !== logDate);
+      return [optimisticLog, ...without];
+    });
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -132,23 +158,30 @@ export function useData(): UseDataReturn {
         return;
       }
 
-      const { data, error: insertError } = await supabase
+      const { data, error: upsertError } = await supabase
         .from("daily_logs")
-        .insert({ ...log, user_id: user.id })
+        .upsert(
+          { ...merged, user_id: user.id },
+          { onConflict: "user_id,log_date" }
+        )
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (upsertError) throw upsertError;
 
       // Replace optimistic entry with real data
-      setLogs((prev) => prev.map((l) => (l.id === tempId ? data : l)));
+      setLogs((prev) => prev.map((l) => (l.log_date === logDate ? data : l)));
     } catch (err) {
-      // Rollback optimistic update
-      setLogs((prev) => prev.filter((l) => l.id !== tempId));
+      // Rollback optimistic update on error
+      if (existing) {
+        setLogs((prev) => prev.map((l) => (l.log_date === logDate ? existing : l)));
+      } else {
+        setLogs((prev) => prev.filter((l) => l.id !== tempId));
+      }
       console.error("Error adding log:", err);
       throw err;
     }
-  }, []);
+  }, [logs]);
 
   const updateLog = useCallback(async (id: string, updates: Partial<DailyLog>) => {
     // Optimistic update
