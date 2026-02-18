@@ -105,23 +105,29 @@
     scroll-behavior: smooth;
   }
 
-  /* Custom scrollbar */
+  /* Prevent full-page body scroll — only content panels scroll */
+  html, body {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* Thin premium scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 4px;
+    height: 4px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 4px;
+    background: hsl(var(--primary) / 0.35);
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.6);
+    background: hsl(var(--primary) / 0.65);
   }
 }
 
@@ -292,49 +298,38 @@
     box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3);
   }
 
-  /* Bento grid */
+  /* Bento grid — 12-col on desktop, adaptive on smaller screens */
   .bento-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     gap: 1rem;
   }
 
-  .bento-card-sm {
-    grid-column: span 3;
+  /* Desktop: standard spans */
+  .bento-card-sm   { grid-column: span 3; }
+  .bento-card-md   { grid-column: span 4; }
+  .bento-card-lg   { grid-column: span 6; }
+  .bento-card-xl   { grid-column: span 8; }
+  .bento-card-full { grid-column: span 12; }
+
+  /* Tablet (768–1023px): 2-column feel */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .bento-card-sm  { grid-column: span 6; }
+    .bento-card-md  { grid-column: span 6; }
+    .bento-card-lg  { grid-column: span 12; }
+    .bento-card-xl  { grid-column: span 12; }
   }
 
-  .bento-card-md {
-    grid-column: span 4;
-  }
-
-  .bento-card-lg {
-    grid-column: span 6;
-  }
-
-  .bento-card-xl {
-    grid-column: span 8;
-  }
-
-  .bento-card-full {
-    grid-column: span 12;
-  }
-
-  @media (max-width: 1024px) {
-    .bento-card-sm,
-    .bento-card-md {
-      grid-column: span 6;
+  /* Mobile (<768px): single column */
+  @media (max-width: 767px) {
+    .bento-grid {
+      gap: 0.75rem;
     }
-    .bento-card-lg,
-    .bento-card-xl {
-      grid-column: span 12;
-    }
-  }
-
-  @media (max-width: 640px) {
     .bento-card-sm,
     .bento-card-md,
     .bento-card-lg,
-    .bento-card-xl {
+    .bento-card-xl,
+    .bento-card-full {
       grid-column: span 12;
     }
   }

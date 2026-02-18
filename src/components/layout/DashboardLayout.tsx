@@ -14,28 +14,28 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen flex w-full">
+    // Full viewport, no overflow at root level
+    <div className="flex h-screen w-full overflow-hidden">
       <AppSidebar />
 
-      {/* Main Content */}
+      {/* Main content — only this scrolls */}
       <motion.main
-        className={
-          isMobile
-            ? "flex-1 min-h-screen overflow-y-auto overscroll-contain"
-            : "flex-1 ml-20 md:ml-[260px] min-h-screen overflow-y-auto overscroll-contain"
-        }
+        className={cn(
+          "flex-1 h-screen overflow-y-auto overscroll-contain scroll-smooth",
+          isMobile ? "w-full" : "lg:ml-72"
+        )}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <div className={isMobile ? "p-4 pt-20 pb-28" : "p-6 md:p-8"}>
+        <div className={isMobile ? "p-4 pt-20 pb-24" : "p-6 md:p-8"}>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ x: 30, opacity: 0 }}
+              initial={{ x: 24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -30, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              exit={{ x: -24, opacity: 0 }}
+              transition={{ type: "spring", damping: 26, stiffness: 220 }}
             >
               {children}
             </motion.div>
@@ -48,3 +48,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     </div>
   );
 };
+
+// small local helper to avoid importing clsx in layout
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
+}

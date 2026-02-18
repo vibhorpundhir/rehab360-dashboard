@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ResponsiveContainer,
   RadarChart,
@@ -11,6 +12,7 @@ import { useData, getCravingRiskByTime } from "@/hooks/useData";
 
 export const CravingRadar = () => {
   const { logs } = useData();
+  const isMobile = useIsMobile();
 
   // Calculate craving risk by time of day from real data
   const chartData = useMemo(() => {
@@ -61,12 +63,12 @@ export const CravingRadar = () => {
         <p className="text-sm text-muted-foreground">Craving intensity by time of day</p>
       </div>
 
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" aspect={isMobile ? 1.2 : 1.6}>
         <RadarChart data={displayData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
           <PolarGrid stroke="hsl(var(--border))" />
           <PolarAngleAxis
             dataKey="trigger"
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: isMobile ? 9 : 11 }}
           />
           <Radar
             name="Craving"
@@ -75,7 +77,7 @@ export const CravingRadar = () => {
             fill="hsl(var(--alert))"
             fillOpacity={0.3}
             strokeWidth={2}
-            isAnimationActive={true}
+            isAnimationActive={!isMobile}
             animationDuration={1000}
           />
         </RadarChart>
