@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -32,6 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export const SleepChart = () => {
   const { logs } = useData();
+  const isMobile = useIsMobile();
   const last7Days = getLogsForDays(logs, 7);
 
   // Transform logs to chart data
@@ -83,7 +85,7 @@ export const SleepChart = () => {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" aspect={isMobile ? 1.4 : 2.2}>
         <AreaChart data={displayData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="sleepGradient" x1="0" y1="0" x2="0" y2="1">
@@ -100,12 +102,12 @@ export const SleepChart = () => {
             dataKey="day"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: isMobile ? 10 : 12 }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: isMobile ? 10 : 12 }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Area
@@ -114,7 +116,7 @@ export const SleepChart = () => {
             stroke="hsl(var(--calm))"
             strokeWidth={2}
             fill="url(#sleepGradient)"
-            isAnimationActive={true}
+            isAnimationActive={!isMobile}
             animationDuration={1000}
           />
         </AreaChart>
