@@ -26,7 +26,6 @@ const Dashboard = () => {
     ? "Good afternoon" 
     : "Good evening";
 
-  // Calculate real stats from logs
   const avgSleepQuality = last7Days.length > 0 
     ? Math.round(last7Days.reduce((sum, log) => sum + (log.sleep_quality || 0), 0) / last7Days.length)
     : 0;
@@ -36,8 +35,6 @@ const Dashboard = () => {
     : 0;
 
   const handleQuickLog = (id: string) => {
-    console.log("Quick logging:", id);
-    // Quick log with default values
     const today = new Date().toISOString().split("T")[0];
     if (id === "sleep") {
       addLog({ log_date: today, sleep_hours: 7, sleep_quality: 70 });
@@ -67,30 +64,18 @@ const Dashboard = () => {
 
       {/* Bento Grid */}
       <div className="bento-grid">
-        {/* AI Prediction Card - Featured */}
-        <MotionCard
-          className="bento-card-lg row-span-1"
-          delay={0}
-          hoverLift={false}
-        >
+        <MotionCard className="bento-card-lg row-span-1" delay={0} hoverLift={false}>
           <PredictionCard logs={logs} />
         </MotionCard>
 
-        {/* Wellness Score */}
-        <MotionCard
-          className="bento-card-md row-span-2 flex items-center justify-center"
-          delay={1}
-          hoverLift={false}
-        >
+        <MotionCard className="bento-card-md row-span-2 flex items-center justify-center" delay={1} hoverLift={false}>
           <WellnessScore score={avgSleepQuality || 78} />
         </MotionCard>
 
-        {/* Streak Widget */}
         <MotionCard className="bento-card-sm" delay={2}>
           <StreakWidget days={logs.length} />
         </MotionCard>
 
-        {/* Quick Stats - Now with real data */}
         <MotionCard className="bento-card-sm" delay={3}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
@@ -105,7 +90,6 @@ const Dashboard = () => {
           </div>
         </MotionCard>
 
-        {/* Today's Goals */}
         <MotionCard className="bento-card-sm" delay={4}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -118,7 +102,6 @@ const Dashboard = () => {
           </div>
         </MotionCard>
 
-        {/* Days Logged - Real count */}
         <MotionCard className="bento-card-sm" delay={5}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-calm/20 flex items-center justify-center">
@@ -131,27 +114,22 @@ const Dashboard = () => {
           </div>
         </MotionCard>
 
-        {/* Quick Logger */}
         <MotionCard className="bento-card-lg" delay={6} hoverLift={false}>
           <QuickLogger onLog={handleQuickLog} />
         </MotionCard>
 
-        {/* Mood Grid */}
         <MotionCard className="bento-card-lg" delay={7} hoverLift={false}>
           <MoodGrid onMoodSelect={setSelectedMood} selectedMood={selectedMood} />
         </MotionCard>
 
-        {/* Sleep Chart */}
         <MotionCard className="bento-card-lg" delay={8} hoverLift={false}>
           <SleepChart />
         </MotionCard>
 
-        {/* Craving Radar */}
         <MotionCard className="bento-card-md" delay={9} hoverLift={false}>
           <CravingRadar />
         </MotionCard>
 
-        {/* Achievements */}
         <MotionCard className="bento-card-sm" delay={10}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
@@ -164,9 +142,8 @@ const Dashboard = () => {
           </div>
         </MotionCard>
 
-        {/* Year Heatmap */}
         <MotionCard className="bento-card-full" delay={11} hoverLift={false}>
-          <YearHeatmap />
+          <YearHeatmap logs={logs} />
         </MotionCard>
       </div>
     </>
