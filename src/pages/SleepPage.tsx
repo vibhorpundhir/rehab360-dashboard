@@ -5,18 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useData, calculateSleepDebt, getLogsForDays } from "@/hooks/useData";
 import { InsightEngine } from "@/components/widgets/InsightEngine";
-import { Moon, Sun, AlertTriangle, CheckCircle2, BedDouble, Clock, Zap, Sparkles } from "lucide-react";
+import { EmptyState } from "@/components/widgets/EmptyState";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Moon,
+  Sun,
+  AlertTriangle,
+  CheckCircle2,
+  BedDouble,
+  Clock,
+  Zap,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { SleepStagesChart } from "@/components/charts/SleepStagesChart";
+import { CircadianScatter } from "@/components/charts/CircadianScatter";
+import { SleepEfficiencyRadial } from "@/components/charts/SleepEfficiencyRadial";
+import { SleepDebtWaterfall } from "@/components/charts/SleepDebtWaterfall";
 
 const pageVariants = {
   initial: { x: 50, opacity: 0 },
@@ -24,26 +30,9 @@ const pageVariants = {
   exit: { x: -50, opacity: 0 },
 };
 
-// Mock sleep stages data
-const generateSleepStages = () => {
-  const stages = [];
-  for (let i = 0; i < 48; i++) {
-    const hour = Math.floor(i / 6);
-    const isDeepSleep = hour >= 1 && hour <= 3;
-    const isREM = hour >= 4 && hour <= 6;
-    
-    stages.push({
-      time: `${Math.floor(i * 10 / 60)}:${String((i * 10) % 60).padStart(2, "0")}`,
-      deep: isDeepSleep ? 60 + Math.random() * 30 : 10 + Math.random() * 20,
-      rem: isREM ? 50 + Math.random() * 30 : 5 + Math.random() * 15,
-      light: 20 + Math.random() * 40,
-    });
-  }
-  return stages;
-};
-
 const SleepPage = () => {
   const { logs, addLog } = useData();
+  const isMobile = useIsMobile();
   const [bedtime, setBedtime] = useState("23:00");
   const [wakeTime, setWakeTime] = useState("07:00");
   const [quality, setQuality] = useState([70]);
@@ -51,23 +40,16 @@ const SleepPage = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [animateChart, setAnimateChart] = useState(false);
 
-  const sleepStagesData = useMemo(() => generateSleepStages(), []);
   const last7Days = getLogsForDays(logs, 7);
+  const hasSleepData = last7Days.some((l) => l.sleep_hours);
 
-  // Calculate sleep hours
   const sleepHours = useMemo(() => {
     const [bedH, bedM] = bedtime.split(":").map(Number);
     const [wakeH, wakeM] = wakeTime.split(":").map(Number);
-    
     let hours = wakeH - bedH;
     let minutes = wakeM - bedM;
-    
     if (hours < 0) hours += 24;
-    if (minutes < 0) {
-      hours -= 1;
-      minutes += 60;
-    }
-    
+    if (minutes < 0) { hours -= 1; minutes += 60; }
     return hours + minutes / 60;
   }, [bedtime, wakeTime]);
 
@@ -85,20 +67,13 @@ const SleepPage = () => {
       });
       setShowSuccess(true);
       setAnimateChart(true);
-      
-      // Show success toast with insight
       toast.success("Sleep logged!", {
-        description: sleepDebt > 2 
+        description: sleepDebt > 2
           ? "⚠️ Consider an earlier bedtime tonight."
           : "✨ Great rest! Charts updated.",
       });
-      
-      setTimeout(() => {
-        setShowSuccess(false);
-        setAnimateChart(false);
-      }, 3000);
-    } catch (error) {
-      console.error("Failed to save:", error);
+      setTimeout(() => { setShowSuccess(false); setAnimateChart(false); }, 3000);
+    } catch {
       toast.error("Failed to save. Please try again.");
     } finally {
       setIsSaving(false);
@@ -124,6 +99,7 @@ const SleepPage = () => {
         </p>
       </div>
 
+      {/* Input + Summary */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Input Section */}
         <MotionCard className="p-6" delay={0} hoverLift={false}>
@@ -131,13 +107,10 @@ const SleepPage = () => {
             <BedDouble className="w-5 h-5 text-calm" />
             Log Tonight's Sleep
           </h3>
-
           <div className="space-y-6">
-            {/* Bedtime */}
             <div>
               <label className="text-sm text-muted-foreground flex items-center gap-2 mb-2">
-                <Moon className="w-4 h-4" />
-                Bedtime
+                <Moon className="w-4 h-4" /> Bedtime
               </label>
               <input
                 type="time"
@@ -152,12 +125,9 @@ const SleepPage = () => {
                 )}
               />
             </div>
-
-            {/* Wake Time */}
             <div>
               <label className="text-sm text-muted-foreground flex items-center gap-2 mb-2">
-                <Sun className="w-4 h-4" />
-                Wake Time
+                <Sun className="w-4 h-4" /> Wake Time
               </label>
               <input
                 type="time"
@@ -172,30 +142,16 @@ const SleepPage = () => {
                 )}
               />
             </div>
-
-            {/* Quality Slider */}
             <div>
               <label className="text-sm text-muted-foreground flex items-center justify-between mb-4">
                 <span className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  Sleep Quality
+                  <Zap className="w-4 h-4" /> Sleep Quality
                 </span>
                 <span className="text-primary font-bold text-lg">{quality[0]}%</span>
               </label>
-              <Slider
-                value={quality}
-                onValueChange={setQuality}
-                max={100}
-                min={1}
-                step={1}
-                className="w-full"
-              />
+              <Slider value={quality} onValueChange={setQuality} max={100} min={1} step={1} className="w-full" />
             </div>
-
-            {/* Save Button */}
-            <motion.div
-              whileTap={{ scale: 0.95 }}
-            >
+            <motion.div whileTap={{ scale: 0.95 }}>
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
@@ -211,15 +167,13 @@ const SleepPage = () => {
           </div>
         </MotionCard>
 
-        {/* Results Section */}
+        {/* Results */}
         <div className="space-y-6">
-          {/* Sleep Summary */}
           <MotionCard className="p-6" delay={1}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Total Sleep
+                  <Clock className="w-4 h-4" /> Total Sleep
                 </p>
                 <p className="text-4xl font-bold text-foreground mt-1">
                   {sleepHours.toFixed(1)}h
@@ -231,22 +185,10 @@ const SleepPage = () => {
             </div>
           </MotionCard>
 
-          {/* Sleep Debt Card */}
           <AnimatePresence mode="wait">
             {isWarning && (
-              <motion.div
-                key="warning"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-              >
-                <MotionCard
-                  className={cn(
-                    "p-6 border-2 border-alert/50",
-                    "bg-alert/10"
-                  )}
-                  delay={2}
-                >
+              <motion.div key="warning" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
+                <MotionCard className={cn("p-6 border-2 border-alert/50", "bg-alert/10")} delay={2}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-alert/20 flex items-center justify-center">
                       <AlertTriangle className="w-6 h-6 text-alert" />
@@ -254,28 +196,16 @@ const SleepPage = () => {
                     <div>
                       <p className="text-lg font-semibold text-alert">Sleep Debt Warning</p>
                       <p className="text-sm text-muted-foreground">
-                        You're {sleepDebt.toFixed(1)}h behind on rest. Consider an earlier bedtime.
+                        You're {sleepDebt.toFixed(1)}h behind on rest.
                       </p>
                     </div>
                   </div>
                 </MotionCard>
               </motion.div>
             )}
-
             {isRecovery && (
-              <motion.div
-                key="recovery"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-              >
-                <MotionCard
-                  className={cn(
-                    "p-6 border-2 border-success/50",
-                    "shadow-glow-success"
-                  )}
-                  delay={2}
-                >
+              <motion.div key="recovery" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
+                <MotionCard className={cn("p-6 border-2 border-success/50", "shadow-glow-success")} delay={2}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
                       <CheckCircle2 className="w-6 h-6 text-success" />
@@ -283,21 +213,15 @@ const SleepPage = () => {
                     <div>
                       <p className="text-lg font-semibold text-success">Recovery Mode</p>
                       <p className="text-sm text-muted-foreground">
-                        Excellent! You're getting optimal rest for recovery.
+                        Excellent! Optimal rest for recovery.
                       </p>
                     </div>
                   </div>
                 </MotionCard>
               </motion.div>
             )}
-
             {!isWarning && !isRecovery && (
-              <motion.div
-                key="neutral"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-              >
+              <motion.div key="neutral" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
                 <MotionCard className="p-6" delay={2}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
@@ -317,22 +241,18 @@ const SleepPage = () => {
         </div>
       </div>
 
-      {/* Smart Insights Panel */}
+      {/* Insights */}
       <MotionCard className="p-6" delay={3} hoverLift={false}>
         <InsightEngine logs={logs} />
       </MotionCard>
 
-      {/* Sleep Stages Chart */}
+      {/* Sleep Stages Chart (fixed) */}
       <MotionCard className="p-6" delay={4} hoverLift={false}>
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             Sleep Stages Analysis
             {animateChart && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-success"
-              >
+              <motion.span initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} className="text-success">
                 <Sparkles className="w-4 h-4" />
               </motion.span>
             )}
@@ -341,72 +261,43 @@ const SleepPage = () => {
             Estimated sleep architecture based on your pattern
           </p>
         </div>
-
-        <motion.div 
-          className="h-[250px]"
-          animate={animateChart ? { scale: [1, 1.02, 1] } : {}}
-          transition={{ duration: 0.5 }}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sleepStagesData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis 
-                dataKey="time" 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={10}
-                tickLine={false}
-                interval={7}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={10}
-                tickLine={false}
-                hide
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="deep"
-                stackId="1"
-                stroke="hsl(var(--primary))"
-                fill="hsl(var(--primary))"
-                fillOpacity={0.6}
-                name="Deep Sleep"
-                isAnimationActive={true}
-                animationDuration={1500}
-              />
-              <Area
-                type="monotone"
-                dataKey="rem"
-                stackId="1"
-                stroke="hsl(var(--calm))"
-                fill="hsl(var(--calm))"
-                fillOpacity={0.6}
-                name="REM"
-                isAnimationActive={true}
-                animationDuration={1500}
-              />
-              <Area
-                type="monotone"
-                dataKey="light"
-                stackId="1"
-                stroke="hsl(var(--muted-foreground))"
-                fill="hsl(var(--muted-foreground))"
-                fillOpacity={0.3}
-                name="Light Sleep"
-                isAnimationActive={true}
-                animationDuration={1500}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </motion.div>
+        <SleepStagesChart sleepHours={sleepHours} isMobile={isMobile} />
       </MotionCard>
+
+      {/* ── Sleep Intelligence Section ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <h2 className="text-2xl font-display font-bold text-foreground mb-2">
+          Sleep <span className="gradient-text-teal">Intelligence</span>
+        </h2>
+        <p className="text-muted-foreground text-sm mb-6">
+          Advanced analysis of your sleep patterns
+        </p>
+      </motion.div>
+
+      {!hasSleepData ? (
+        <EmptyState message="Log tonight's sleep to unlock your Circadian Analysis." />
+      ) : (
+        <>
+          {/* Circadian + Efficiency */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            <MotionCard className="lg:col-span-3 p-6" delay={5} hoverLift={false}>
+              <CircadianScatter logs={last7Days} isMobile={isMobile} />
+            </MotionCard>
+            <MotionCard className="lg:col-span-2 p-6" delay={6} hoverLift={false}>
+              <SleepEfficiencyRadial logs={last7Days} />
+            </MotionCard>
+          </div>
+
+          {/* Sleep Debt Waterfall */}
+          <MotionCard className="p-6" delay={7} hoverLift={false}>
+            <SleepDebtWaterfall logs={last7Days} isMobile={isMobile} />
+          </MotionCard>
+        </>
+      )}
     </motion.div>
   );
 };
