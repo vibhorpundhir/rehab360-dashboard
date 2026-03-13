@@ -9,6 +9,7 @@ import { PredictionCard } from "@/components/widgets/PredictionCard";
 import { YearInReview } from "@/components/widgets/YearInReview";
 import { EmptyState } from "@/components/widgets/EmptyState";
 import { useData, getLogsForDays } from "@/hooks/useData";
+import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, Moon, Flame, Target } from "lucide-react";
 
 const pageVariants = {
