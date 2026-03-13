@@ -9,6 +9,7 @@ import { PredictionCard } from "@/components/widgets/PredictionCard";
 import { YearInReview } from "@/components/widgets/YearInReview";
 import { EmptyState } from "@/components/widgets/EmptyState";
 import { useData, getLogsForDays } from "@/hooks/useData";
+import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, Moon, Flame, Target } from "lucide-react";
 
 const pageVariants = {
@@ -18,6 +19,7 @@ const pageVariants = {
 };
 
 const AnalyticsPage = () => {
+  const { user } = useAuth();
   const { logs } = useData();
   const last14Days = getLogsForDays(logs, 14);
 
@@ -60,7 +62,7 @@ const AnalyticsPage = () => {
       ) : (
         <>
           {/* Year In Review */}
-          <YearInReview logs={logs} userName="Vibhor" />
+          <YearInReview logs={logs} userName={user?.name || "Guest"} />
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

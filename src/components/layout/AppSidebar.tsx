@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Activity,
@@ -13,6 +14,7 @@ import {
   TrendingUp,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
@@ -138,10 +140,11 @@ const MobileSidebar = () => {
               </nav>
 
               {/* Bottom */}
-              <div className="p-4 border-t border-white/10">
+              <div className="p-4 border-t border-white/10 space-y-1">
                 {bottomItems.map((item) => (
                   <NavItem key={item.path} item={item} isActive={location.pathname === item.path} />
                 ))}
+                <LogoutButton />
               </div>
             </motion.aside>
           </>
@@ -211,7 +214,7 @@ const DesktopSidebar = () => {
       </nav>
 
       {/* Bottom */}
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/10 space-y-1">
         {bottomItems.map((item) => (
           <NavLink
             key={item.path}
@@ -232,8 +235,33 @@ const DesktopSidebar = () => {
             )}
           </NavLink>
         ))}
+        <LogoutButton />
       </div>
     </aside>
+  );
+};
+
+// ─── Logout Button ────────────────────────────────────────────────────────────
+const LogoutButton = () => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  return (
+    <button
+      onClick={handleLogout}
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 min-h-[48px] rounded-xl transition-all duration-200 w-full",
+        "hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+      )}
+    >
+      <LogOut className="w-5 h-5 flex-shrink-0" />
+      <span className="font-medium whitespace-nowrap">Sign Out</span>
+    </button>
   );
 };
 

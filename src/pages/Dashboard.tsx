@@ -9,8 +9,10 @@ import { BiologicalRadar } from "@/components/charts/BiologicalRadar";
 import { YearHeatmap } from "@/components/charts/YearHeatmap";
 import { Flame, Moon, Droplets, TrendingUp } from "lucide-react";
 import { useData, getLogsForDays } from "@/hooks/useData";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [selectedMood, setSelectedMood] = useState<string>();
   const { logs, addLog } = useData();
   const last7Days = getLogsForDays(logs, 7);
@@ -109,7 +111,7 @@ const Dashboard = () => {
       >
         <h1 className="text-3xl font-display font-bold text-foreground">
           {greeting},{" "}
-          <span className="gradient-text">Vibhor</span> 👋
+          <span className="gradient-text">{user?.name || "Guest"}</span> 👋
         </h1>
         <p className="text-muted-foreground mt-2">
           Here's your recovery dashboard for today

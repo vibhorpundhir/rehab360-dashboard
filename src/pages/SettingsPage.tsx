@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { MotionCard } from "@/components/motion/MotionCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +23,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { User, Target, Trash2, Check } from "lucide-react";
+import { User, Target, Trash2, Check, LogOut } from "lucide-react";
 import { clearAllData } from "@/hooks/useData";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
 const pageVariants = {
@@ -33,12 +35,14 @@ const pageVariants = {
 };
 
 const SettingsPage = () => {
-  const [name, setName] = useState(() => localStorage.getItem("rehab360_name") || "");
+  const { user, updateProfile, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [name, setName] = useState(user?.name || "");
   const [goal, setGoal] = useState(() => localStorage.getItem("rehab360_goal") || "");
   const [saved, setSaved] = useState(false);
 
   const handleSaveProfile = () => {
-    localStorage.setItem("rehab360_name", name);
+    updateProfile({ name });
     localStorage.setItem("rehab360_goal", goal);
     setSaved(true);
     toast({ title: "Profile saved", description: "Your settings have been updated." });
@@ -46,11 +50,14 @@ const SettingsPage = () => {
   };
 
   const handleClearData = () => {
-    clearAllData();
-    localStorage.removeItem("rehab360_name");
-    localStorage.removeItem("rehab360_goal");
+    clearAllData(user?.id);
     toast({ title: "Data cleared", description: "All app data has been reset. Refresh to see changes.", variant: "destructive" });
     setTimeout(() => window.location.reload(), 1000);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
   };
 
   return (
@@ -106,8 +113,22 @@ const SettingsPage = () => {
         </div>
       </MotionCard>
 
+      {/* Sign Out */}
+      <MotionCard className="p-6" delay={1} hoverLift={false}>
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <LogOut className="w-5 h-5 text-muted-foreground" />
+          Session
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Signed in as <span className="font-medium text-foreground">{user?.email}</span>
+        </p>
+        <Button variant="outline" className="w-full" onClick={handleSignOut}>
+          Sign Out
+        </Button>
+      </MotionCard>
+
       {/* Danger Zone */}
-      <MotionCard className="p-6 border-destructive/30" delay={1} hoverLift={false}>
+      <MotionCard className="p-6 border-destructive/30" delay={2} hoverLift={false}>
         <h3 className="text-lg font-semibold text-destructive mb-4 flex items-center gap-2">
           <Trash2 className="w-5 h-5" />
           Danger Zone

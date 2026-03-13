@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type DailyLog = Tables<"daily_logs">;
@@ -14,81 +15,69 @@ interface UseDataReturn {
   refetch: () => Promise<void>;
 }
 
-const STORAGE_KEY = "rehab360_logs";
+function getStorageKey(userId: string | null): string {
+  return userId ? `rehab360_logs_${userId}` : "rehab360_logs_guest";
+}
 
-// Mock data for development/demo
-const mockLogs: DailyLog[] = Array.from({ length: 14 }, (_, i) => {
-  const date = new Date();
-  date.setDate(date.getDate() - i);
-  return {
-    id: `mock-${i}`,
-    user_id: "mock-user",
-    log_date: date.toISOString().split("T")[0],
-    sleep_hours: 5 + Math.random() * 4,
-    sleep_quality: Math.floor(50 + Math.random() * 50),
-    craving_intensity: Math.floor(1 + Math.random() * 9),
-    craving_time: ["08:00", "14:00", "20:00", "23:00"][Math.floor(Math.random() * 4)],
-    craving_trigger: ["stress", "boredom", "social", "habit"][Math.floor(Math.random() * 4)],
-    mood_tag: ["happy", "calm", "anxious", "sad", "angry"][Math.floor(Math.random() * 5)],
-    water_glasses: Math.floor(Math.random() * 10),
-    exercise_minutes: Math.floor(Math.random() * 60),
-    meditation_minutes: Math.floor(Math.random() * 30),
-    took_meds: Math.random() > 0.3,
-    notes: null,
-    created_at: date.toISOString(),
-    updated_at: date.toISOString(),
-  };
-});
-
-function loadFromStorage(): DailyLog[] | null {
+function loadFromStorage(userId: string | null): DailyLog[] | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(getStorageKey(userId));
     if (stored) return JSON.parse(stored);
   } catch {}
   return null;
 }
 
-function saveToStorage(logs: DailyLog[]) {
+function saveToStorage(userId: string | null, logs: DailyLog[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(logs));
   } catch {}
 }
 
-export function clearAllData() {
-  localStorage.removeItem(STORAGE_KEY);
+export function clearAllData(userId?: string | null) {
+  if (userId) {
+    localStorage.removeItem(getStorageKey(userId));
+  }
+  // Also clear legacy key
+  localStorage.removeItem("rehab360_logs");
 }
 
 export function useData(): UseDataReturn {
-  const [logs, setLogs] = useState<DailyLog[]>(() => loadFromStorage() || mockLogs);
+  const { user, session } = useAuth();
+  const userId = user?.id ?? null;
+
+  const [logs, setLogs] = useState<DailyLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Persist to localStorage whenever logs change
+  // When userId changes, load that user's data
   useEffect(() => {
-    saveToStorage(logs);
-  }, [logs]);
+    const stored = loadFromStorage(userId);
+    setLogs(stored || []);
+  }, [userId]);
+
+  // Persist to user-scoped localStorage whenever logs change
+  useEffect(() => {
+    if (logs.length > 0) {
+      saveToStorage(userId, logs);
+    }
+  }, [logs, userId]);
 
   const fetchLogs = useCallback(async () => {
+    if (!session?.user) return;
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        // Not authenticated — keep current state (localStorage or mock)
-        return;
-      }
-
       const { data, error: fetchError } = await supabase
         .from("daily_logs")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .order("log_date", { ascending: false })
         .limit(30);
 
       if (fetchError) throw fetchError;
-      
+
       if (data?.length) {
         setLogs(data);
       }
@@ -98,12 +87,11 @@ export function useData(): UseDataReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [session]);
 
   const addLog = useCallback(async (log: Partial<DailyLogInsert>) => {
     const logDate = log.log_date || new Date().toISOString().split("T")[0];
 
-    // Merge with existing same-day entry in local state (so vitals don't overwrite journal, etc.)
     const existing = logs.find((l) => l.log_date === logDate);
     const merged: Partial<DailyLogInsert> = {
       ...(existing ? {
@@ -119,16 +107,14 @@ export function useData(): UseDataReturn {
         took_meds: existing.took_meds,
         notes: existing.notes,
       } : {}),
-      // New values override existing
       ...Object.fromEntries(Object.entries(log).filter(([, v]) => v !== undefined)),
       log_date: logDate,
     };
 
-    // Optimistic update
     const tempId = `temp-${Date.now()}`;
     const optimisticLog: DailyLog = {
       id: existing?.id || tempId,
-      user_id: existing?.user_id || "pending",
+      user_id: existing?.user_id || userId || "pending",
       log_date: logDate,
       sleep_hours: (merged.sleep_hours as number) ?? null,
       sleep_quality: (merged.sleep_quality as number) ?? null,
@@ -151,17 +137,12 @@ export function useData(): UseDataReturn {
     });
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        // Keep optimistic update for demo mode
-        return;
-      }
+      if (!session?.user) return; // Demo mode - keep optimistic update
 
       const { data, error: upsertError } = await supabase
         .from("daily_logs")
         .upsert(
-          { ...merged, user_id: user.id },
+          { ...merged, user_id: session.user.id },
           { onConflict: "user_id,log_date" }
         )
         .select()
@@ -169,10 +150,8 @@ export function useData(): UseDataReturn {
 
       if (upsertError) throw upsertError;
 
-      // Replace optimistic entry with real data
       setLogs((prev) => prev.map((l) => (l.log_date === logDate ? data : l)));
     } catch (err) {
-      // Rollback optimistic update on error
       if (existing) {
         setLogs((prev) => prev.map((l) => (l.log_date === logDate ? existing : l)));
       } else {
@@ -181,10 +160,9 @@ export function useData(): UseDataReturn {
       console.error("Error adding log:", err);
       throw err;
     }
-  }, [logs]);
+  }, [logs, userId, session]);
 
   const updateLog = useCallback(async (id: string, updates: Partial<DailyLog>) => {
-    // Optimistic update
     const previousLogs = logs;
     setLogs((prev) => prev.map((l) => (l.id === id ? { ...l, ...updates } : l)));
 
@@ -196,7 +174,6 @@ export function useData(): UseDataReturn {
 
       if (updateError) throw updateError;
     } catch (err) {
-      // Rollback
       setLogs(previousLogs);
       console.error("Error updating log:", err);
       throw err;
@@ -217,19 +194,17 @@ export function useData(): UseDataReturn {
   };
 }
 
-// Helper to get data for specific time ranges
+// Helpers
 export function getLogsForDays(logs: DailyLog[], days: number): DailyLog[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   return logs.filter((log) => new Date(log.log_date) >= cutoff);
 }
 
-// Helper to calculate sleep debt
 export function calculateSleepDebt(sleepHours: number, idealHours = 8): number {
   return Math.max(0, idealHours - sleepHours);
 }
 
-// Helper to get craving risk by time of day
 export function getCravingRiskByTime(logs: DailyLog[]): { time: string; risk: number }[] {
   const timeSlots = {
     Morning: { count: 0, total: 0 },
@@ -240,15 +215,12 @@ export function getCravingRiskByTime(logs: DailyLog[]): { time: string; risk: nu
 
   logs.forEach((log) => {
     if (!log.craving_time || !log.craving_intensity) return;
-    
     const hour = parseInt(log.craving_time.split(":")[0]);
     let slot: keyof typeof timeSlots;
-    
     if (hour >= 5 && hour < 12) slot = "Morning";
     else if (hour >= 12 && hour < 17) slot = "Afternoon";
     else if (hour >= 17 && hour < 21) slot = "Evening";
     else slot = "Night";
-
     timeSlots[slot].count++;
     timeSlots[slot].total += log.craving_intensity;
   });
