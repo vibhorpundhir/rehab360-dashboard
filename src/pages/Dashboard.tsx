@@ -9,6 +9,7 @@ import { BiologicalRadar } from "@/components/charts/BiologicalRadar";
 import { YearHeatmap } from "@/components/charts/YearHeatmap";
 import { Flame, Moon, Droplets, TrendingUp } from "lucide-react";
 import { useData, getLogsForDays } from "@/hooks/useData";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const [selectedMood, setSelectedMood] = useState<string>();
