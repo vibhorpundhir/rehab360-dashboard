@@ -12,6 +12,7 @@ import { useData, getLogsForDays } from "@/hooks/useData";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [selectedMood, setSelectedMood] = useState<string>();
   const { logs, addLog } = useData();
   const last7Days = getLogsForDays(logs, 7);
