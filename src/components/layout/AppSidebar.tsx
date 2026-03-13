@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Activity,
@@ -13,6 +14,7 @@ import {
   TrendingUp,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
