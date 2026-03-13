@@ -140,10 +140,11 @@ const MobileSidebar = () => {
               </nav>
 
               {/* Bottom */}
-              <div className="p-4 border-t border-white/10">
+              <div className="p-4 border-t border-white/10 space-y-1">
                 {bottomItems.map((item) => (
                   <NavItem key={item.path} item={item} isActive={location.pathname === item.path} />
                 ))}
+                <LogoutButton />
               </div>
             </motion.aside>
           </>
