@@ -19,6 +19,7 @@ const pageVariants = {
 };
 
 const AnalyticsPage = () => {
+  const { user } = useAuth();
   const { logs } = useData();
   const last14Days = getLogsForDays(logs, 14);
 
