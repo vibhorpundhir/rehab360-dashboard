@@ -214,7 +214,7 @@ const DesktopSidebar = () => {
       </nav>
 
       {/* Bottom */}
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/10 space-y-1">
         {bottomItems.map((item) => (
           <NavLink
             key={item.path}
@@ -235,6 +235,7 @@ const DesktopSidebar = () => {
             )}
           </NavLink>
         ))}
+        <LogoutButton />
       </div>
     </aside>
   );
