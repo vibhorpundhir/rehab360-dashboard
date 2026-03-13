@@ -62,7 +62,7 @@ const AnalyticsPage = () => {
       ) : (
         <>
           {/* Year In Review */}
-          <YearInReview logs={logs} userName="Vibhor" />
+          <YearInReview logs={logs} userName={user?.name || "Guest"} />
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

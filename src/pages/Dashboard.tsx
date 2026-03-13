@@ -111,7 +111,7 @@ const Dashboard = () => {
       >
         <h1 className="text-3xl font-display font-bold text-foreground">
           {greeting},{" "}
-          <span className="gradient-text">Vibhor</span> 👋
+          <span className="gradient-text">{user?.name || "Guest"}</span> 👋
         </h1>
         <p className="text-muted-foreground mt-2">
           Here's your recovery dashboard for today

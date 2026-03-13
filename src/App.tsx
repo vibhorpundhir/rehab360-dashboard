@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
@@ -28,22 +29,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          
-          {/* Dashboard Pages with Layout */}
-          <Route path="/dashboard" element={<WithDashboardLayout><Dashboard /></WithDashboardLayout>} />
-          <Route path="/vitals" element={<WithDashboardLayout><VitalsPage /></WithDashboardLayout>} />
-          <Route path="/sleep" element={<WithDashboardLayout><SleepPage /></WithDashboardLayout>} />
-          <Route path="/journal" element={<WithDashboardLayout><UnifiedJournalPage /></WithDashboardLayout>} />
-          <Route path="/insights" element={<WithDashboardLayout><AnalyticsPage /></WithDashboardLayout>} />
-          <Route path="/mind" element={<WithDashboardLayout><MindPage /></WithDashboardLayout>} />
-          <Route path="/settings" element={<WithDashboardLayout><SettingsPage /></WithDashboardLayout>} />
-          
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            
+            {/* Dashboard Pages with Layout */}
+            <Route path="/dashboard" element={<WithDashboardLayout><Dashboard /></WithDashboardLayout>} />
+            <Route path="/vitals" element={<WithDashboardLayout><VitalsPage /></WithDashboardLayout>} />
+            <Route path="/sleep" element={<WithDashboardLayout><SleepPage /></WithDashboardLayout>} />
+            <Route path="/journal" element={<WithDashboardLayout><UnifiedJournalPage /></WithDashboardLayout>} />
+            <Route path="/insights" element={<WithDashboardLayout><AnalyticsPage /></WithDashboardLayout>} />
+            <Route path="/mind" element={<WithDashboardLayout><MindPage /></WithDashboardLayout>} />
+            <Route path="/settings" element={<WithDashboardLayout><SettingsPage /></WithDashboardLayout>} />
+            
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
