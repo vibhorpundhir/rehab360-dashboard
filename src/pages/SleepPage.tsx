@@ -23,6 +23,7 @@ import { SleepStagesChart } from "@/components/charts/SleepStagesChart";
 import { CircadianScatter } from "@/components/charts/CircadianScatter";
 import { SleepEfficiencyRadial } from "@/components/charts/SleepEfficiencyRadial";
 import { SleepDebtWaterfall } from "@/components/charts/SleepDebtWaterfall";
+import { AISleepInsights } from "@/components/widgets/AISleepInsights";
 
 const pageVariants = {
   initial: { x: 50, opacity: 0 },
