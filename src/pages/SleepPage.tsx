@@ -100,6 +100,13 @@ const SleepPage = () => {
         </p>
       </div>
 
+      {/* AI Sleep Analysis */}
+      <AISleepInsights
+        logs={last7Days}
+        currentSleepHours={sleepHours}
+        currentQuality={quality[0]}
+      />
+
       {/* Input + Summary */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Input Section */}
