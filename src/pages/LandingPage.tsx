@@ -49,7 +49,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[100dvh] overflow-x-hidden">
+    <div className="min-h-[100dvh] overflow-x-hidden overflow-y-auto">
       {/* Animated Background */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />

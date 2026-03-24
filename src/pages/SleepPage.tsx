@@ -23,6 +23,7 @@ import { SleepStagesChart } from "@/components/charts/SleepStagesChart";
 import { CircadianScatter } from "@/components/charts/CircadianScatter";
 import { SleepEfficiencyRadial } from "@/components/charts/SleepEfficiencyRadial";
 import { SleepDebtWaterfall } from "@/components/charts/SleepDebtWaterfall";
+import { AISleepInsights } from "@/components/widgets/AISleepInsights";
 
 const pageVariants = {
   initial: { x: 50, opacity: 0 },
@@ -98,6 +99,13 @@ const SleepPage = () => {
           Track your rest to optimize recovery
         </p>
       </div>
+
+      {/* AI Sleep Analysis */}
+      <AISleepInsights
+        logs={last7Days}
+        currentSleepHours={sleepHours}
+        currentQuality={quality[0]}
+      />
 
       {/* Input + Summary */}
       <div className="grid md:grid-cols-2 gap-6">

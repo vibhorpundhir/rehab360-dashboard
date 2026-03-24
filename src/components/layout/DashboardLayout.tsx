@@ -15,7 +15,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     // Full viewport, no overflow at root level
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-[100dvh] w-full overflow-hidden">
       <AppSidebar />
 
       {/* Main content — only this scrolls */}
