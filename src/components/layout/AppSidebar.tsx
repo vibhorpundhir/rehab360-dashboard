@@ -12,6 +12,7 @@ import {
   Brain,
   Settings,
   TrendingUp,
+  FileText,
   Menu,
   X,
   LogOut,
@@ -24,6 +25,7 @@ const navItems = [
   { name: "Journal", path: "/journal", icon: Heart },
   { name: "Insights", path: "/insights", icon: TrendingUp },
   { name: "Mind", path: "/mind", icon: Brain },
+  { name: "Report Builder", path: "/report-builder", icon: FileText },
 ];
 
 const bottomItems = [
