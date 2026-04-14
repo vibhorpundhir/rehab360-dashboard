@@ -1,11 +1,26 @@
 import { useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { FileText, Sparkles, Printer, Loader2, Stethoscope, User, Calendar, Thermometer, Activity, Brain, TrendingUp } from "lucide-react";
+import {
+  FileText,
+  Sparkles,
+  Printer,
+  Loader2,
+  Activity,
+  Brain,
+  TrendingUp,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData, getLogsForDays } from "@/hooks/useData";
@@ -36,7 +51,7 @@ export default function ReportBuilderPage() {
     visitDate: new Date().toISOString().split("T")[0],
     roughNotes: "",
     doctorName: "",
-    clinicName: "Rehab360 Medical Center",
+    clinicName: "Rehab360 Clinical Center",
     dateRange: "30",
   });
 
@@ -44,59 +59,85 @@ export default function ReportBuilderPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Phase 1: Real calculated metrics
   const metrics = useMemo(() => {
     const days = parseInt(form.dateRange) || 30;
     const recentLogs = getLogsForDays(logs, days);
 
     const sleepLogs = recentLogs.filter((l) => l.sleep_hours != null);
     const avgSleep = sleepLogs.length
-      ? (sleepLogs.reduce((s, l) => s + (l.sleep_hours ?? 0), 0) / sleepLogs.length).toFixed(1)
+      ? (
+          sleepLogs.reduce((s, l) => s + (l.sleep_hours ?? 0), 0) /
+          sleepLogs.length
+        ).toFixed(1)
       : "N/A";
 
-    // Clean streak: consecutive days with craving_intensity < 4 (from most recent)
     let cleanStreak = 0;
-    const sorted = [...recentLogs].sort((a, b) => b.log_date.localeCompare(a.log_date));
+    const sorted = [...recentLogs].sort((a, b) =>
+      b.log_date.localeCompare(a.log_date)
+    );
     for (const log of sorted) {
       if (log.craving_intensity != null && log.craving_intensity >= 4) break;
       if (log.craving_intensity != null || log.mood_tag != null) cleanStreak++;
     }
 
-    // Primary trigger
     const triggerCounts: Record<string, number> = {};
     recentLogs.forEach((l) => {
       if (l.craving_trigger) {
-        triggerCounts[l.craving_trigger] = (triggerCounts[l.craving_trigger] || 0) + 1;
+        triggerCounts[l.craving_trigger] =
+          (triggerCounts[l.craving_trigger] || 0) + 1;
       }
     });
     const primaryTrigger =
-      Object.entries(triggerCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "None identified";
+      Object.entries(triggerCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+      "None identified";
 
-    // Average mood (map mood_tag to numeric if possible)
     const moodMap: Record<string, number> = {
       great: 9, good: 7, okay: 5, low: 3, terrible: 1,
       happy: 8, calm: 7, anxious: 3, stressed: 2, sad: 2, angry: 2, neutral: 5,
     };
-    const moodLogs = recentLogs.filter((l) => l.mood_tag && moodMap[l.mood_tag.toLowerCase()]);
+    const moodLogs = recentLogs.filter(
+      (l) => l.mood_tag && moodMap[l.mood_tag.toLowerCase()]
+    );
     const avgMood = moodLogs.length
-      ? (moodLogs.reduce((s, l) => s + (moodMap[l.mood_tag!.toLowerCase()] || 5), 0) / moodLogs.length).toFixed(1)
+      ? (
+          moodLogs.reduce(
+            (s, l) => s + (moodMap[l.mood_tag!.toLowerCase()] || 5),
+            0
+          ) / moodLogs.length
+        ).toFixed(1)
       : "N/A";
 
     const avgWater = recentLogs.length
-      ? (recentLogs.reduce((s, l) => s + (l.water_glasses ?? 0), 0) / recentLogs.length).toFixed(1)
+      ? (
+          recentLogs.reduce((s, l) => s + (l.water_glasses ?? 0), 0) /
+          recentLogs.length
+        ).toFixed(1)
       : "N/A";
 
     const avgExercise = recentLogs.length
-      ? (recentLogs.reduce((s, l) => s + (l.exercise_minutes ?? 0), 0) / recentLogs.length).toFixed(0)
+      ? (
+          recentLogs.reduce((s, l) => s + (l.exercise_minutes ?? 0), 0) /
+          recentLogs.length
+        ).toFixed(0)
       : "N/A";
 
-    return { avgSleep, cleanStreak, primaryTrigger, avgMood, avgWater, avgExercise, totalLogs: recentLogs.length };
+    return {
+      avgSleep,
+      cleanStreak,
+      primaryTrigger,
+      avgMood,
+      avgWater,
+      avgExercise,
+      totalLogs: recentLogs.length,
+    };
   }, [logs, form.dateRange]);
 
   const displayName = form.patientName || user?.name || "Patient";
 
-  const set = (key: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm((p) => ({ ...p, [key]: e.target.value }));
+  const set =
+    (key: keyof FormData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((p) => ({ ...p, [key]: e.target.value }));
 
   const generateReport = async () => {
     setIsGenerating(true);
@@ -111,7 +152,8 @@ export default function ReportBuilderPage() {
 - Average daily exercise: ${metrics.avgExercise} minutes
 - Total log entries: ${metrics.totalLogs}`;
 
-    const roughNotes = form.roughNotes || "No additional doctor notes provided.";
+    const roughNotes =
+      form.roughNotes || "No additional doctor notes provided.";
 
     try {
       const resp = await fetch(REPORT_URL, {
@@ -168,95 +210,157 @@ export default function ReportBuilderPage() {
         }
       }
     } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+      toast({
+        title: "Generation failed",
+        description: e.message,
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const today = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <>
+      {/* Print-only styles */}
       <style>{`
         @media print {
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 20mm; }
           body * { visibility: hidden !important; }
           #print-report, #print-report * { visibility: visible !important; }
           #print-report {
             position: absolute; left: 0; top: 0;
-            width: 100%; height: auto;
+            width: 100% !important; height: auto !important;
+            max-width: none !important;
             box-shadow: none !important; border: none !important;
-            background: white !important; padding: 10mm !important; margin: 0 !important;
+            background: white !important; padding: 0 !important; margin: 0 !important;
+            color: black !important; aspect-ratio: auto !important;
+            overflow: visible !important; border-radius: 0 !important;
+          }
+          #print-report h1, #print-report h2, #print-report h3,
+          #print-report p, #print-report span, #print-report div,
+          #print-report li, #print-report strong, #print-report em {
             color: black !important;
           }
-          #print-report h2, #print-report h3, #print-report p, #print-report span, #print-report div {
-            color: black !important;
-          }
+          .print-break-avoid { break-inside: avoid; }
         }
       `}</style>
 
+      {/* Screen UI (hidden during print) */}
       <div className="print:hidden">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <FileText className="w-6 h-6 text-primary-foreground" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          {/* Page Header */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow-violet">
+                <FileText className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Clinical Report Builder
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Auto-populated from recovery data · AI-powered clinical
+                  assessment
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Clinical Report Builder</h1>
-              <p className="text-sm text-muted-foreground">Auto-populated from your recovery data • AI-powered assessment</p>
-            </div>
+            <Button
+              onClick={() => window.print()}
+              variant="outline"
+              disabled={!reportText}
+              className="gap-2"
+            >
+              <Printer className="w-4 h-4" /> Print Report
+            </Button>
           </div>
 
-          {/* Split layout */}
+          {/* Split Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column - Controls (span 4) */}
+            {/* ─── Left: Controls (span 4) ─── */}
             <div className="lg:col-span-4 space-y-5">
-              {/* Live Metrics Card */}
+              {/* Live Metrics */}
               <section className="glass-card rounded-2xl p-5 space-y-3 border border-border/40">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Activity className="w-4 h-4 text-primary" /> Live Patient Metrics
+                <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
+                  <Activity className="w-4 h-4 text-primary" /> Live Recovery
+                  Metrics
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   {[
                     { label: "Avg Sleep", value: `${metrics.avgSleep}h`, icon: "🛏️" },
                     { label: "Clean Streak", value: `${metrics.cleanStreak}d`, icon: "🔥" },
                     { label: "Mood Score", value: `${metrics.avgMood}/10`, icon: "😊" },
-                    { label: "Primary Trigger", value: metrics.primaryTrigger, icon: "⚡" },
-                    { label: "Avg Water", value: `${metrics.avgWater} gl`, icon: "💧" },
-                    { label: "Avg Exercise", value: `${metrics.avgExercise} min`, icon: "🏃" },
+                    { label: "Trigger", value: metrics.primaryTrigger, icon: "⚡" },
+                    { label: "Hydration", value: `${metrics.avgWater} gl`, icon: "💧" },
+                    { label: "Exercise", value: `${metrics.avgExercise} min`, icon: "🏃" },
                   ].map((m) => (
-                    <div key={m.label} className="bg-background/60 rounded-xl p-3 text-center border border-border/30">
-                      <p className="text-lg">{m.icon}</p>
-                      <p className="text-sm font-bold text-foreground">{m.value}</p>
-                      <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                    <div
+                      key={m.label}
+                      className="bg-secondary/40 rounded-xl p-3 text-center border border-border/20"
+                    >
+                      <p className="text-base">{m.icon}</p>
+                      <p className="text-sm font-bold text-foreground">
+                        {m.value}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {m.label}
+                      </p>
                     </div>
                   ))}
                 </div>
                 <p className="text-[10px] text-muted-foreground text-center">
-                  Based on {metrics.totalLogs} log entries over {form.dateRange} days
+                  Based on {metrics.totalLogs} entries over {form.dateRange} days
                 </p>
               </section>
 
-              {/* Controls */}
+              {/* Form Controls */}
               <section className="glass-card rounded-2xl p-5 space-y-4 border border-border/40">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
+                <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
                   <User className="w-4 h-4 text-primary" /> Report Settings
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Patient Name</Label>
-                    <Input placeholder={user?.name || "Patient"} value={form.patientName} onChange={set("patientName")} />
+                    <Label className="text-xs text-muted-foreground">
+                      Patient Name
+                    </Label>
+                    <Input
+                      placeholder={user?.name || "Patient"}
+                      value={form.patientName}
+                      onChange={set("patientName")}
+                    />
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Age</Label>
-                    <Input type="number" placeholder="—" value={form.age} onChange={set("age")} />
+                    <Input
+                      type="number"
+                      placeholder="—"
+                      value={form.age}
+                      onChange={set("age")}
+                    />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Gender</Label>
-                    <Select value={form.gender} onValueChange={(v) => setForm((p) => ({ ...p, gender: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <Label className="text-xs text-muted-foreground">
+                      Gender
+                    </Label>
+                    <Select
+                      value={form.gender}
+                      onValueChange={(v) =>
+                        setForm((p) => ({ ...p, gender: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="male">Male</SelectItem>
                         <SelectItem value="female">Female</SelectItem>
@@ -265,9 +369,18 @@ export default function ReportBuilderPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Date Range</Label>
-                    <Select value={form.dateRange} onValueChange={(v) => setForm((p) => ({ ...p, dateRange: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <Label className="text-xs text-muted-foreground">
+                      Date Range
+                    </Label>
+                    <Select
+                      value={form.dateRange}
+                      onValueChange={(v) =>
+                        setForm((p) => ({ ...p, dateRange: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="7">Last 7 days</SelectItem>
                         <SelectItem value="14">Last 14 days</SelectItem>
@@ -277,131 +390,266 @@ export default function ReportBuilderPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Doctor</Label>
-                    <Input placeholder="Dr. Smith" value={form.doctorName} onChange={set("doctorName")} />
+                    <Label className="text-xs text-muted-foreground">
+                      Doctor
+                    </Label>
+                    <Input
+                      placeholder="Dr. Smith"
+                      value={form.doctorName}
+                      onChange={set("doctorName")}
+                    />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Visit Date</Label>
-                    <Input type="date" value={form.visitDate} onChange={set("visitDate")} />
+                    <Label className="text-xs text-muted-foreground">
+                      Visit Date
+                    </Label>
+                    <Input
+                      type="date"
+                      value={form.visitDate}
+                      onChange={set("visitDate")}
+                    />
                   </div>
                 </div>
               </section>
 
               {/* Doctor's Notes */}
               <section className="glass-card rounded-2xl p-5 space-y-3 border border-border/40">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Brain className="w-4 h-4 text-accent" /> Doctor's Rough Notes
+                <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
+                  <Brain className="w-4 h-4 text-accent" /> Doctor's Rough
+                  Notes
                 </div>
                 <Textarea
                   rows={4}
                   placeholder="Patient reports improved sleep but elevated anxiety in social settings. Consider adjusting medication..."
                   value={form.roughNotes}
                   onChange={set("roughNotes")}
+                  className="resize-none"
                 />
               </section>
 
-              {/* Actions */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={generateReport}
-                  disabled={isGenerating}
-                  className="flex-1 h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                >
-                  {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                  {isGenerating ? "Generating…" : "✨ Generate Clinical Assessment"}
-                </Button>
-              </div>
+              {/* Generate Button */}
+              <Button
+                onClick={generateReport}
+                disabled={isGenerating}
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-5 h-5" />
+                )}
+                {isGenerating
+                  ? "Generating…"
+                  : "✨ Generate Clinical Assessment"}
+              </Button>
             </div>
 
-            {/* Right Column - A4 Preview (span 8) */}
-            <div className="lg:col-span-8 flex flex-col items-center gap-3">
-              <Button onClick={() => window.print()} variant="outline" disabled={!reportText} className="self-end print:hidden">
-                <Printer className="w-4 h-4 mr-2" /> 🖨️ Print Report
-              </Button>
-
+            {/* ─── Right: A4 Preview (span 8) ─── */}
+            <div className="lg:col-span-8 flex flex-col items-center">
               <div
                 id="print-report"
                 ref={printRef}
-                className="bg-white text-black w-full max-w-3xl aspect-[1/1.414] shadow-2xl rounded-lg overflow-y-auto p-8 md:p-10 text-sm leading-relaxed"
-                style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+                className="w-full max-w-3xl aspect-[1/1.414] overflow-y-auto rounded-lg shadow-2xl"
+                style={{
+                  fontFamily: "'Georgia', 'Times New Roman', serif",
+                  background: "#ffffff",
+                  color: "#1a1a1a",
+                }}
               >
-                {/* Document Header */}
-                <div className="border-b-2 border-gray-800 pb-4 mb-5">
-                  <div className="flex items-start justify-between">
+                <div className="p-8 md:p-10 flex flex-col min-h-full">
+                  {/* ── Letterhead ── */}
+                  <div
+                    className="print-break-avoid"
+                    style={{ borderBottom: "2px solid #1e293b", paddingBottom: "16px", marginBottom: "20px" }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h2
+                          className="text-xl font-bold tracking-wide"
+                          style={{ color: "#0f172a" }}
+                        >
+                          Rehab360 Clinical Progress Report
+                        </h2>
+                        <p className="text-xs mt-1" style={{ color: "#64748b" }}>
+                          {form.clinicName} · Confidential Medical Document
+                        </p>
+                      </div>
+                      <div className="text-right text-xs" style={{ color: "#64748b" }}>
+                        <p className="font-medium" style={{ color: "#334155" }}>
+                          {today}
+                        </p>
+                        <p>
+                          Ref: R360-
+                          {Date.now().toString(36).slice(0, 6).toUpperCase()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Patient Demographics ── */}
+                  <div
+                    className="print-break-avoid rounded-md p-4 mb-5"
+                    style={{ background: "#f8fafc", color: "#0f172a" }}
+                  >
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                      style={{ color: "#94a3b8" }}
+                    >
+                      Patient Information
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-xs">
+                      <div>
+                        <span className="font-semibold" style={{ color: "#475569" }}>
+                          Patient:
+                        </span>{" "}
+                        {displayName}
+                      </div>
+                      <div>
+                        <span className="font-semibold" style={{ color: "#475569" }}>
+                          Age:
+                        </span>{" "}
+                        {form.age || "—"}
+                      </div>
+                      <div>
+                        <span className="font-semibold" style={{ color: "#475569" }}>
+                          Gender:
+                        </span>{" "}
+                        {form.gender
+                          ? form.gender.charAt(0).toUpperCase() +
+                            form.gender.slice(1)
+                          : "—"}
+                      </div>
+                      <div>
+                        <span className="font-semibold" style={{ color: "#475569" }}>
+                          Visit Date:
+                        </span>{" "}
+                        {form.visitDate}
+                      </div>
+                      <div>
+                        <span className="font-semibold" style={{ color: "#475569" }}>
+                          Attending:
+                        </span>{" "}
+                        {form.doctorName || "—"}
+                      </div>
+                      <div>
+                        <span className="font-semibold" style={{ color: "#475569" }}>
+                          Report Period:
+                        </span>{" "}
+                        Last {form.dateRange} days
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Vital Metrics Highlights ── */}
+                  <div className="print-break-avoid mb-5">
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+                      style={{ color: "#94a3b8" }}
+                    >
+                      Recovery Metrics Summary
+                    </p>
+                    <div
+                      className="grid grid-cols-3 gap-3 rounded-md p-4"
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        background: "#fafbfd",
+                      }}
+                    >
+                      <MetricCell
+                        label="Current Clean Streak"
+                        value={String(metrics.cleanStreak)}
+                        unit="days"
+                        highlight
+                      />
+                      <MetricCell
+                        label="Average Sleep"
+                        value={metrics.avgSleep}
+                        unit="hrs/night"
+                        highlight
+                      />
+                      <MetricCell
+                        label="Dominant Mood"
+                        value={metrics.avgMood}
+                        unit="/10"
+                        highlight
+                      />
+                      <MetricCell
+                        label="Primary Trigger"
+                        value={metrics.primaryTrigger}
+                      />
+                      <MetricCell
+                        label="Daily Hydration"
+                        value={metrics.avgWater}
+                        unit="glasses"
+                      />
+                      <MetricCell
+                        label="Daily Exercise"
+                        value={metrics.avgExercise}
+                        unit="min"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ── AI Clinical Assessment ── */}
+                  <div className="flex-1">
+                    {reportText ? (
+                      <div className="print-break-avoid">
+                        <p
+                          className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+                          style={{ color: "#94a3b8" }}
+                        >
+                          Clinical Assessment
+                        </p>
+                        <div
+                          className="prose prose-sm md:prose-base max-w-none"
+                          style={{ color: "#1e293b" }}
+                        >
+                          <ReactMarkdown>{reportText}</ReactMarkdown>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <TrendingUp
+                          className="w-10 h-10 mb-3"
+                          style={{ color: "#cbd5e1" }}
+                        />
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: "#94a3b8" }}
+                        >
+                          Recovery metrics loaded — ready for AI assessment
+                        </p>
+                        <p
+                          className="text-xs mt-1"
+                          style={{ color: "#cbd5e1" }}
+                        >
+                          Click "Generate Clinical Assessment" to populate this
+                          section
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Footer ── */}
+                  <div
+                    className="print-break-avoid mt-auto pt-6 flex justify-between items-end text-xs"
+                    style={{
+                      borderTop: "1px solid #cbd5e1",
+                      color: "#64748b",
+                    }}
+                  >
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900 tracking-wide">{form.clinicName}</h2>
-                      <p className="text-xs text-gray-500 mt-1">Clinical Assessment & Recovery Report</p>
+                      <p className="font-semibold" style={{ color: "#334155" }}>
+                        {form.doctorName || "Attending Physician"}
+                      </p>
+                      <p className="mt-6">
+                        Signed: ________________________
+                      </p>
                     </div>
-                    <div className="text-right text-xs text-gray-500">
-                      <p>{today}</p>
-                      <p>Report #R360-{Date.now().toString(36).slice(0, 6).toUpperCase()}</p>
+                    <div className="text-right">
+                      <p>{form.clinicName}</p>
+                      <p className="mt-1">Generated by Rehab360 Clinical AI</p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Patient Demographics */}
-                <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 mb-5 text-xs">
-                  <div><span className="font-semibold text-gray-700">Patient:</span> {displayName}</div>
-                  <div><span className="font-semibold text-gray-700">Age:</span> {form.age || "—"}</div>
-                  <div><span className="font-semibold text-gray-700">Gender:</span> {form.gender ? form.gender.charAt(0).toUpperCase() + form.gender.slice(1) : "—"}</div>
-                  <div><span className="font-semibold text-gray-700">Visit Date:</span> {form.visitDate}</div>
-                  <div><span className="font-semibold text-gray-700">Attending:</span> {form.doctorName || "—"}</div>
-                  <div><span className="font-semibold text-gray-700">Period:</span> Last {form.dateRange} days</div>
-                </div>
-
-                {/* Recovery Metrics Box */}
-                <div className="bg-gray-50 border border-gray-200 rounded p-3 mb-5">
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Recovery Metrics Summary</p>
-                  <div className="grid grid-cols-3 gap-3 text-xs">
-                    <div className="text-center">
-                      <p className="text-gray-500">Avg Sleep</p>
-                      <p className="font-bold text-gray-800 text-base">{metrics.avgSleep}<span className="text-xs font-normal"> hrs</span></p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-gray-500">Clean Streak</p>
-                      <p className="font-bold text-gray-800 text-base">{metrics.cleanStreak}<span className="text-xs font-normal"> days</span></p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-gray-500">Mood Score</p>
-                      <p className="font-bold text-gray-800 text-base">{metrics.avgMood}<span className="text-xs font-normal"> /10</span></p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-gray-500">Primary Trigger</p>
-                      <p className="font-bold text-gray-800 text-sm">{metrics.primaryTrigger}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-gray-500">Hydration</p>
-                      <p className="font-bold text-gray-800 text-base">{metrics.avgWater}<span className="text-xs font-normal"> gl/day</span></p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-gray-500">Exercise</p>
-                      <p className="font-bold text-gray-800 text-base">{metrics.avgExercise}<span className="text-xs font-normal"> min/day</span></p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* AI Clinical Assessment */}
-                {reportText ? (
-                  <div className="prose prose-sm prose-gray max-w-none" style={{ whiteSpace: "pre-wrap" }}>
-                    <ReactMarkdown>{reportText}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                    <TrendingUp className="w-10 h-10 mb-3 opacity-30" />
-                    <p className="text-sm font-medium">Recovery metrics loaded — ready for AI assessment</p>
-                    <p className="text-xs mt-1">Click "Generate Clinical Assessment" to create the report</p>
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div className="mt-auto pt-8 border-t border-gray-300 flex justify-between items-end text-xs text-gray-500">
-                  <div>
-                    <p className="font-semibold text-gray-700">{form.doctorName || "Attending Physician"}</p>
-                    <p className="mt-4">Signature: ________________________</p>
-                  </div>
-                  <div className="text-right">
-                    <p>{form.clinicName}</p>
-                    <p>Generated by Rehab360 Clinical AI</p>
                   </div>
                 </div>
               </div>
@@ -410,5 +658,38 @@ export default function ReportBuilderPage() {
         </motion.div>
       </div>
     </>
+  );
+}
+
+/* ── Small helper for the metric cells ── */
+function MetricCell({
+  label,
+  value,
+  unit,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="text-center">
+      <p className="text-[10px]" style={{ color: "#64748b" }}>
+        {label}
+      </p>
+      <p
+        className={highlight ? "text-2xl font-bold" : "text-sm font-bold"}
+        style={{ color: highlight ? "#6d28d9" : "#1e293b" }}
+      >
+        {value}
+        {unit && (
+          <span className="text-xs font-normal" style={{ color: "#94a3b8" }}>
+            {" "}
+            {unit}
+          </span>
+        )}
+      </p>
+    </div>
   );
 }
