@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { AIChatbot } from "@/components/features/AIChatbot";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -14,21 +15,20 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isMobile = useIsMobile();
 
   return (
-    // Full viewport, no overflow at root level
-    <div className="flex h-[100dvh] w-full overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <AppSidebar />
 
       {/* Main content — only this scrolls */}
       <motion.main
         className={cn(
-          "flex-1 h-screen overflow-y-auto overscroll-contain scroll-smooth",
+          "flex-1 h-full overflow-y-auto overscroll-contain scroll-smooth relative",
           isMobile ? "w-full" : "lg:ml-72"
         )}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <div className={isMobile ? "p-4 pt-20 pb-24" : "p-6 md:p-8"}>
+        <div className={isMobile ? "p-4 pt-20 pb-24" : "p-6 md:p-8 pb-24 lg:pb-8"}>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -43,13 +43,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
       </motion.main>
 
-      {/* AI Chatbot */}
       <AIChatbot />
     </div>
   );
 };
-
-// small local helper to avoid importing clsx in layout
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
