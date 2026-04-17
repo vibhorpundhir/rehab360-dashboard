@@ -105,9 +105,11 @@
     scroll-behavior: smooth;
   }
 
-  /* Prevent full-page body scroll — only content panels scroll */
+  /* Allow natural page scrolling. Dashboard layout manages its own scroll
+     containment via h-[100dvh] overflow-hidden on its own wrapper, so we
+     don't need (and shouldn't have) a global body scroll lock — it breaks
+     the landing page and other public routes. */
   html, body {
-    overflow: hidden;
     height: 100%;
   }
 
