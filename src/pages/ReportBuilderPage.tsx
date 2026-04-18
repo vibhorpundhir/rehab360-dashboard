@@ -228,27 +228,71 @@ export default function ReportBuilderPage() {
 
   return (
     <>
-      {/* Print-only styles */}
+      {/* Print-only styles — fully isolate the report so nothing gets clipped */}
       <style>{`
         @media print {
-          @page { size: A4; margin: 20mm; }
+          @page { size: A4; margin: 18mm 16mm; }
+
+          /* Reset every ancestor so absolute child can fill the page */
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           body * { visibility: hidden !important; }
-          #print-report, #print-report * { visibility: visible !important; }
+
+          /* Neutralize layout containers that would otherwise clip */
+          body #root,
+          body #root *:not(#print-report):not(#print-report *) {
+            height: auto !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            position: static !important;
+            transform: none !important;
+            box-shadow: none !important;
+          }
+
+          #print-report, #print-report * {
+            visibility: visible !important;
+          }
           #print-report {
-            position: absolute; left: 0; top: 0;
-            width: 100% !important; height: auto !important;
-            max-width: none !important;
-            box-shadow: none !important; border: none !important;
-            background: white !important; padding: 0 !important; margin: 0 !important;
-            color: black !important; aspect-ratio: auto !important;
-            overflow: visible !important; border-radius: 0 !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            aspect-ratio: auto !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          #print-report .a4-inner {
+            padding: 0 !important;
+            min-height: 0 !important;
+            display: block !important;
           }
           #print-report h1, #print-report h2, #print-report h3,
-          #print-report p, #print-report span, #print-report div,
-          #print-report li, #print-report strong, #print-report em {
-            color: black !important;
+          #print-report h4, #print-report p, #print-report span,
+          #print-report div, #print-report li, #print-report strong,
+          #print-report em, #print-report td, #print-report th {
+            color: #000000 !important;
           }
-          .print-break-avoid { break-inside: avoid; }
+          #print-report .prose * { color: #0f172a !important; }
+          .print-break-avoid { break-inside: avoid; page-break-inside: avoid; }
+          .print-page-break { page-break-before: always; break-before: page; }
         }
       `}</style>
 
