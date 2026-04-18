@@ -337,7 +337,7 @@ const LandingPage = () => {
             <span className="font-display font-bold text-foreground">Rehab360</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 Rehab360. Built with 💜 for your recovery.
+            © 2026 Vibhor Pundhir. Built with 💜 for your recovery.
           </p>
         </div>
       </footer>
