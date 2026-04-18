@@ -500,7 +500,7 @@ export default function ReportBuilderPage() {
                   color: "#1a1a1a",
                 }}
               >
-                <div className="p-8 md:p-10 flex flex-col min-h-full">
+                <div className="a4-inner p-8 md:p-10 flex flex-col min-h-full">
                   {/* ── Letterhead ── */}
                   <div
                     className="print-break-avoid"
