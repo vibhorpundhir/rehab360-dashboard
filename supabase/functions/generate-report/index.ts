@@ -17,15 +17,45 @@ serve(async (req) => {
       ? `Heart Rate: ${vitals.heartRate || "N/A"} bpm, Blood Pressure: ${vitals.bloodPressure || "N/A"}, Temperature: ${vitals.temperature || "N/A"}°F`
       : "No vitals provided";
 
-    const systemPrompt = `You are a medical scribe. Take the following rough notes and patient vitals, and write a highly detailed, professional, and empathetic clinical assessment and treatment plan. Use standard medical terminology. Format it in clear paragraphs with headers using markdown (## for sections). Include sections: Chief Complaint, History of Present Illness, Vital Signs Assessment, Clinical Assessment, Treatment Plan, and Follow-Up Recommendations. Keep it suitable for handing to a patient or another healthcare provider.`;
+    const systemPrompt = `You are a senior clinical physician and medical scribe specializing in addiction recovery and behavioral health. Produce a COMPREHENSIVE, professional clinical progress report that is suitable both for another healthcare provider AND readable by an educated patient.
 
-    const userPrompt = `Patient Symptoms & Complaints: ${symptoms || "None provided"}
+STRICT FORMATTING RULES (Markdown):
+- Use "## Section Title" for each major section. Do NOT include the report title — that is rendered by the UI.
+- Use short paragraphs (2–4 sentences). Use **bold** for key clinical findings.
+- Use bullet lists where appropriate (recommendations, red flags, follow-up actions).
+- Use precise medical terminology, then briefly clarify in plain language when helpful.
+- Be empathetic, evidence-based, non-judgmental, and never alarmist.
+- Do NOT invent vitals or lab values that were not provided. Reason only from supplied data.
+- Length: aim for ~600–900 words total.
 
-Vitals: ${vitalsText}
+REQUIRED SECTIONS (in this order):
+## Chief Complaint & Reason for Visit
+## History of Present Illness
+## Behavioral & Recovery Progress
+(Discuss clean streak, craving patterns, primary trigger, mood trend.)
+## Sleep & Lifestyle Assessment
+(Discuss sleep duration/quality, hydration, exercise, and their interplay.)
+## Mental Health & Risk Stratification
+(Comment on mood, relapse risk, any red flags. Use a clear Low / Moderate / High risk label.)
+## Clinical Impression
+(2–3 sentence summary diagnosis-style statement.)
+## Treatment Plan & Recommendations
+(Bullet list: behavioral interventions, sleep hygiene, hydration, exercise targets, coping strategies for the identified trigger, medication adherence reminders if relevant.)
+## Patient Education
+(Plain-language guidance the patient can act on this week.)
+## Follow-Up
+(Recommended interval, what to monitor, when to seek urgent help.)`;
 
-Doctor's Rough Notes: ${roughNotes || "None provided"}
+    const userPrompt = `PATIENT RECOVERY DATA & CONTEXT:
+${symptoms || "None provided"}
 
-Please generate a detailed clinical report.`;
+VITAL / SUMMARY METRICS:
+${vitalsText}
+
+DOCTOR'S ROUGH NOTES:
+${roughNotes || "None provided"}
+
+Please generate the full clinical progress report now, following the section structure exactly.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
