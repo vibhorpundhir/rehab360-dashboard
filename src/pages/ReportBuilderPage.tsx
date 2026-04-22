@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -234,23 +234,13 @@ export default function ReportBuilderPage() {
         await document.fonts.ready;
       }
 
-      // Add a print-mode class so CSS can target only this run
-      document.body.classList.add("printing-report");
-
-      // Wait for layout/paint to settle (esp. with streamed markdown)
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            window.setTimeout(resolve, 200);
+            window.setTimeout(resolve, 120);
           });
         });
       });
-
-      // Sanity check — make sure the report node has rendered content
-      const node = printRef.current;
-      if (!node || node.scrollHeight < 50) {
-        await new Promise((r) => setTimeout(r, 250));
-      }
 
       window.print();
     } catch {
@@ -258,104 +248,52 @@ export default function ReportBuilderPage() {
     }
   };
 
-  // Always clean up the print body class after printing finishes or is cancelled
-  useEffect(() => {
-    const onAfter = () => document.body.classList.remove("printing-report");
-    window.addEventListener("afterprint", onAfter);
-    return () => {
-      window.removeEventListener("afterprint", onAfter);
-      document.body.classList.remove("printing-report");
-    };
-  }, []);
-
   return (
     <>
-      {/*
-        Print-only styles — fully isolate the report.
-        Strategy: in print, hide EVERYTHING by default, then re-show only
-        the chain from #print-report up to <html>. This bypasses every
-        ancestor clip/transform/overflow set by the dashboard shell,
-        framer-motion wrappers, AnimatePresence, sidebar, chatbot, etc.
-      */}
+      {/* Print-only styles — fully isolate the report so nothing gets clipped */}
       <style>{`
         @media print {
-          @page { size: A4; margin: 16mm 14mm; }
+          @page { size: A4; margin: 18mm 16mm; }
 
-          /* 1. Reset the entire ancestor chain so nothing clips/transforms */
-          html, body, #root, #root *, body * {
-            box-shadow: none !important;
-            text-shadow: none !important;
-            filter: none !important;
-            backdrop-filter: none !important;
-          }
-
-          html, body {
+          html, body, #root, #root > div, #root main {
             height: auto !important;
             min-height: 0 !important;
-            max-height: none !important;
             overflow: visible !important;
             background: #ffffff !important;
+          }
+
+          body {
             margin: 0 !important;
             padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            color-adjust: exact !important;
           }
 
-          /* 2. Hide everything by default — we'll re-enable only the report tree */
-          body * { visibility: hidden !important; }
+          .report-print-shell,
+          .report-print-stage {
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            height: auto !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            position: static !important;
+            transform: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
 
-          /* 3. Hide explicit shell elements completely (removes their box) */
-          [data-print-hide="true"],
-          .print\\:hidden {
+          [data-print-hide="true"] {
             display: none !important;
           }
 
-          /* 4. Re-show the report and ALL of its descendants */
           #print-report,
           #print-report * {
             visibility: visible !important;
             opacity: 1 !important;
           }
 
-          /* 5. Neutralize every ancestor wrapper from <html> down to #print-report
-                so transforms/overflow/height on dashboard shell + motion divs
-                don't create a clipping/containing block */
-          html, body, #root,
-          #root > *, #root > * > *, #root > * > * > *,
-          #root > * > * > * > *, #root > * > * > * > * > *,
-          #root > * > * > * > * > * > *,
-          #root > * > * > * > * > * > * > *,
-          #root > * > * > * > * > * > * > * > *,
-          .report-print-shell,
-          .report-print-shell *,
-          .report-print-stage {
-            height: auto !important;
-            max-height: none !important;
-            min-height: 0 !important;
-            overflow: visible !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
-            position: static !important;
-            transform: none !important;
-            translate: none !important;
-            scale: none !important;
-            rotate: none !important;
-            animation: none !important;
-            transition: none !important;
-            background: transparent !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-            width: auto !important;
-            max-width: none !important;
-            float: none !important;
-            clip: auto !important;
-            clip-path: none !important;
-          }
-
-          /* 6. The A4 container — flatten into normal document flow */
           #print-report {
             display: block !important;
             position: static !important;
@@ -363,7 +301,6 @@ export default function ReportBuilderPage() {
             max-width: 100% !important;
             height: auto !important;
             min-height: 0 !important;
-            max-height: none !important;
             aspect-ratio: auto !important;
             overflow: visible !important;
             background: #ffffff !important;
@@ -378,48 +315,19 @@ export default function ReportBuilderPage() {
           #print-report .a4-inner {
             padding: 0 !important;
             min-height: 0 !important;
-            height: auto !important;
             display: block !important;
           }
 
-          /* Footer was using mt-auto inside flex; force normal flow */
-          #print-report .a4-inner > * {
-            margin-top: 0 !important;
-          }
-          #print-report .a4-inner > * + * {
-            margin-top: 16px !important;
-          }
-
-          /* 7. Force readable medical-grade text */
-          #print-report,
           #print-report h1, #print-report h2, #print-report h3,
-          #print-report h4, #print-report h5, #print-report h6,
-          #print-report p, #print-report span, #print-report div,
-          #print-report li, #print-report strong, #print-report em,
-          #print-report td, #print-report th, #print-report a {
+          #print-report h4, #print-report p, #print-report span,
+          #print-report div, #print-report li, #print-report strong,
+          #print-report em, #print-report td, #print-report th {
             color: #000000 !important;
-            text-shadow: none !important;
           }
 
-          #print-report .prose,
-          #print-report .prose * {
-            color: #0f172a !important;
-            max-width: none !important;
-          }
-          #print-report .prose h1 { font-size: 18pt !important; margin: 14pt 0 8pt !important; }
-          #print-report .prose h2 { font-size: 14pt !important; margin: 12pt 0 6pt !important; }
-          #print-report .prose h3 { font-size: 12pt !important; margin: 10pt 0 5pt !important; }
-          #print-report .prose p,
-          #print-report .prose li { font-size: 10.5pt !important; line-height: 1.55 !important; }
-
-          .print-break-avoid {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .print-page-break {
-            page-break-before: always !important;
-            break-before: page !important;
-          }
+          #print-report .prose * { color: #0f172a !important; }
+          .print-break-avoid { break-inside: avoid; page-break-inside: avoid; }
+          .print-page-break { page-break-before: always; break-before: page; }
         }
       `}</style>
 
@@ -625,14 +533,14 @@ export default function ReportBuilderPage() {
               <div
                 id="print-report"
                 ref={printRef}
-                className="w-full max-w-3xl aspect-[1/1.414] overflow-y-auto rounded-lg shadow-2xl print:w-full print:max-w-none print:h-auto print:overflow-visible print:rounded-none print:shadow-none print:aspect-auto"
+                className="w-full max-w-3xl aspect-[1/1.414] overflow-y-auto rounded-lg shadow-2xl print:w-full print:max-w-none print:h-full print:overflow-visible print:rounded-none print:shadow-none"
                 style={{
                   fontFamily: "'Georgia', 'Times New Roman', serif",
                   background: "#ffffff",
                   color: "#1a1a1a",
                 }}
               >
-                <div className="a4-inner p-8 md:p-10 flex flex-col min-h-full print:p-0 print:block print:min-h-0">
+                <div className="a4-inner p-8 md:p-10 flex flex-col min-h-full">
                   {/* ── Letterhead ── */}
                   <div
                     className="print-break-avoid"
