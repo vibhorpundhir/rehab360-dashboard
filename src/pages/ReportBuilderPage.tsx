@@ -226,6 +226,28 @@ export default function ReportBuilderPage() {
     day: "numeric",
   });
 
+  const handlePrint = async () => {
+    if (!reportText || isGenerating) return;
+
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            window.setTimeout(resolve, 120);
+          });
+        });
+      });
+
+      window.print();
+    } catch {
+      window.print();
+    }
+  };
+
   return (
     <>
       {/* Print-only styles — fully isolate the report so nothing gets clipped */}
@@ -233,38 +255,48 @@ export default function ReportBuilderPage() {
         @media print {
           @page { size: A4; margin: 18mm 16mm; }
 
-          /* Reset every ancestor so absolute child can fill the page */
-          html, body {
+          html, body, #root, #root > div, #root main {
             height: auto !important;
+            min-height: 0 !important;
             overflow: visible !important;
             background: #ffffff !important;
+          }
+
+          body {
             margin: 0 !important;
             padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          body * { visibility: hidden !important; }
 
-          /* Neutralize layout containers that would otherwise clip */
-          body #root,
-          body #root *:not(#print-report):not(#print-report *) {
+          .report-print-shell,
+          .report-print-stage {
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
             height: auto !important;
             max-height: none !important;
             min-height: 0 !important;
             overflow: visible !important;
             position: static !important;
             transform: none !important;
-            box-shadow: none !important;
-          }
-
-          #print-report, #print-report * {
+            opacity: 1 !important;
             visibility: visible !important;
           }
+
+          [data-print-hide="true"] {
+            display: none !important;
+          }
+
+          #print-report,
+          #print-report * {
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+
           #print-report {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            right: 0 !important;
+            display: block !important;
+            position: static !important;
             width: 100% !important;
             max-width: 100% !important;
             height: auto !important;
@@ -279,32 +311,37 @@ export default function ReportBuilderPage() {
             margin: 0 !important;
             padding: 0 !important;
           }
+
           #print-report .a4-inner {
             padding: 0 !important;
             min-height: 0 !important;
             display: block !important;
           }
+
           #print-report h1, #print-report h2, #print-report h3,
           #print-report h4, #print-report p, #print-report span,
           #print-report div, #print-report li, #print-report strong,
           #print-report em, #print-report td, #print-report th {
             color: #000000 !important;
           }
+
           #print-report .prose * { color: #0f172a !important; }
           .print-break-avoid { break-inside: avoid; page-break-inside: avoid; }
           .print-page-break { page-break-before: always; break-before: page; }
         }
       `}</style>
 
-      {/* Screen UI (hidden during print) */}
-      <div className="print:hidden">
+      <div className="report-print-shell">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
           {/* Page Header */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div
+            className="flex items-center justify-between flex-wrap gap-4 print:hidden"
+            data-print-hide="true"
+          >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow-violet">
                 <FileText className="w-6 h-6 text-primary-foreground" />
@@ -320,9 +357,9 @@ export default function ReportBuilderPage() {
               </div>
             </div>
             <Button
-              onClick={() => window.print()}
+              onClick={handlePrint}
               variant="outline"
-              disabled={!reportText}
+              disabled={!reportText || isGenerating}
               className="gap-2"
             >
               <Printer className="w-4 h-4" /> Print Report
@@ -330,9 +367,12 @@ export default function ReportBuilderPage() {
           </div>
 
           {/* Split Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 print:block">
             {/* ─── Left: Controls (span 4) ─── */}
-            <div className="lg:col-span-4 space-y-5">
+            <div
+              className="lg:col-span-4 space-y-5 print:hidden"
+              data-print-hide="true"
+            >
               {/* Live Metrics */}
               <section className="glass-card rounded-2xl p-5 space-y-3 border border-border/40">
                 <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
@@ -489,11 +529,11 @@ export default function ReportBuilderPage() {
             </div>
 
             {/* ─── Right: A4 Preview (span 8) ─── */}
-            <div className="lg:col-span-8 flex flex-col items-center">
+            <div className="report-print-stage lg:col-span-8 flex flex-col items-center print:block">
               <div
                 id="print-report"
                 ref={printRef}
-                className="w-full max-w-3xl aspect-[1/1.414] overflow-y-auto rounded-lg shadow-2xl"
+                className="w-full max-w-3xl aspect-[1/1.414] overflow-y-auto rounded-lg shadow-2xl print:w-full print:max-w-none print:h-full print:overflow-visible print:rounded-none print:shadow-none"
                 style={{
                   fontFamily: "'Georgia', 'Times New Roman', serif",
                   background: "#ffffff",
