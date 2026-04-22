@@ -530,6 +530,87 @@ export default function ReportBuilderPage() {
                   ? "Generating…"
                   : "✨ Generate Clinical Assessment"}
               </Button>
+
+              {/* What's Inside — fills empty bottom space */}
+              <section className="glass-card rounded-2xl p-5 space-y-3 border border-border/40">
+                <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
+                  <ClipboardList className="w-4 h-4 text-primary" /> What's
+                  Inside the Report
+                </div>
+                <ul className="space-y-2.5 text-xs text-muted-foreground">
+                  {[
+                    { icon: "🧠", title: "Neurological Assessment", desc: "Cognitive & mood pattern review" },
+                    { icon: "💪", title: "Behavioral Progress", desc: "Streaks, triggers & recovery wins" },
+                    { icon: "💊", title: "Treatment Plan", desc: "Personalized clinical recommendations" },
+                    { icon: "📊", title: "30-Day Analytics", desc: "Sleep · Mood · Hydration · Exercise" },
+                  ].map((item) => (
+                    <li
+                      key={item.title}
+                      className="flex items-start gap-3 p-2.5 rounded-lg bg-secondary/30 border border-border/20"
+                    >
+                      <span className="text-lg leading-none mt-0.5">
+                        {item.icon}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground font-medium leading-tight">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              {/* Trust & Privacy Strip */}
+              <section className="rounded-2xl p-4 border border-border/40 bg-gradient-to-br from-primary/5 via-transparent to-accent/5">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <p className="text-[10px] font-semibold text-foreground">
+                      HIPAA-aware
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <Stethoscope className="w-4 h-4 text-primary" />
+                    <p className="text-[10px] font-semibold text-foreground">
+                      Clinician-grade
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <Lock className="w-4 h-4 text-accent" />
+                    <p className="text-[10px] font-semibold text-foreground">
+                      Private & local
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center mt-3 leading-relaxed">
+                  Reports are generated on-demand from your logs. Nothing is
+                  stored without your consent.
+                </p>
+              </section>
+
+              {/* Pro Tip card */}
+              <section className="rounded-2xl p-4 border border-primary/30 bg-primary/5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      Pro tip
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-snug mt-1">
+                      Add doctor's rough notes above for a more nuanced,
+                      personalized assessment. Then click{" "}
+                      <span className="text-primary font-medium">Print</span>{" "}
+                      to export as PDF.
+                    </p>
+                  </div>
+                </div>
+              </section>
             </div>
 
             {/* ─── Right: A4 Preview (span 8) ─── */}
