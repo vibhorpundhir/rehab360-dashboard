@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -234,19 +234,39 @@ export default function ReportBuilderPage() {
         await document.fonts.ready;
       }
 
+      // Add a print-mode class so CSS can target only this run
+      document.body.classList.add("printing-report");
+
+      // Wait for layout/paint to settle (esp. with streamed markdown)
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            window.setTimeout(resolve, 120);
+            window.setTimeout(resolve, 200);
           });
         });
       });
+
+      // Sanity check — make sure the report node has rendered content
+      const node = printRef.current;
+      if (!node || node.scrollHeight < 50) {
+        await new Promise((r) => setTimeout(r, 250));
+      }
 
       window.print();
     } catch {
       window.print();
     }
   };
+
+  // Always clean up the print body class after printing finishes or is cancelled
+  useEffect(() => {
+    const onAfter = () => document.body.classList.remove("printing-report");
+    window.addEventListener("afterprint", onAfter);
+    return () => {
+      window.removeEventListener("afterprint", onAfter);
+      document.body.classList.remove("printing-report");
+    };
+  }, []);
 
   return (
     <>
