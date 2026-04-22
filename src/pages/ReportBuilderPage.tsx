@@ -625,14 +625,14 @@ export default function ReportBuilderPage() {
               <div
                 id="print-report"
                 ref={printRef}
-                className="w-full max-w-3xl aspect-[1/1.414] overflow-y-auto rounded-lg shadow-2xl print:w-full print:max-w-none print:h-full print:overflow-visible print:rounded-none print:shadow-none"
+                className="w-full max-w-3xl aspect-[1/1.414] overflow-y-auto rounded-lg shadow-2xl print:w-full print:max-w-none print:h-auto print:overflow-visible print:rounded-none print:shadow-none print:aspect-auto"
                 style={{
                   fontFamily: "'Georgia', 'Times New Roman', serif",
                   background: "#ffffff",
                   color: "#1a1a1a",
                 }}
               >
-                <div className="a4-inner p-8 md:p-10 flex flex-col min-h-full">
+                <div className="a4-inner p-8 md:p-10 flex flex-col min-h-full print:p-0 print:block print:min-h-0">
                   {/* ── Letterhead ── */}
                   <div
                     className="print-break-avoid"
