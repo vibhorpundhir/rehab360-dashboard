@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import {
   ArrowLeft, 
   Mail, 
   Lock, 
-  User,
   Sparkles,
   Check
 } from "lucide-react";
@@ -23,7 +22,6 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -46,21 +44,32 @@ const AuthPage = () => {
         });
         navigate("/dashboard");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name },
             emailRedirectTo: window.location.origin,
           },
         });
         
         if (error) throw error;
-        
-        toast({
-          title: "Check your email",
-          description: "We've sent you a confirmation link.",
-        });
+
+        // Auto-confirm is enabled — session returns immediately
+        if (data.session) {
+          toast({
+            title: "Welcome to Rehab360!",
+            description: "Your account is ready.",
+          });
+          navigate("/dashboard");
+        } else {
+          // Fallback: sign in right after signup
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInError) throw signInError;
+          navigate("/dashboard");
+        }
       }
     } catch (error: any) {
       toast({
@@ -199,31 +208,6 @@ const AuthPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <AnimatePresence mode="wait">
-                {!isLogin && (
-                  <motion.div
-                    key="name"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-2"
-                  >
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Enter your name"
-                        className="pl-10 bg-secondary/50 border-white/10 focus:border-primary"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
