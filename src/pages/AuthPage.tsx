@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
   ArrowLeft, 
   Mail, 
   Lock, 
+  User,
   Sparkles,
   Check
 } from "lucide-react";
@@ -22,6 +23,7 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -44,11 +46,23 @@ const AuthPage = () => {
         });
         navigate("/dashboard");
       } else {
+        const trimmedName = name.trim();
+        if (trimmedName.length < 2 || trimmedName.length > 60) {
+          toast({
+            variant: "destructive",
+            title: "Invalid name",
+            description: "Please enter a name between 2 and 60 characters.",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
+            data: { name: trimmedName },
           },
         });
         
@@ -208,6 +222,34 @@ const AuthPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              <AnimatePresence mode="wait">
+                {!isLogin && (
+                  <motion.div
+                    key="name-field"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2 overflow-hidden"
+                  >
+                    <Label htmlFor="name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Jane Doe"
+                        className="pl-10 bg-secondary/50 border-white/10 focus:border-primary"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        maxLength={60}
+                        required={!isLogin}
+                        autoComplete="name"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -274,7 +316,10 @@ const AuthPage = () => {
               <p className="text-muted-foreground">
                 {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                 <button
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setName("");
+                  }}
                   className="text-primary hover:underline font-medium"
                 >
                   {isLogin ? "Sign up" : "Sign in"}
