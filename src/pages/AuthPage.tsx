@@ -222,6 +222,34 @@ const AuthPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              <AnimatePresence mode="wait">
+                {!isLogin && (
+                  <motion.div
+                    key="name-field"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2 overflow-hidden"
+                  >
+                    <Label htmlFor="name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Jane Doe"
+                        className="pl-10 bg-secondary/50 border-white/10 focus:border-primary"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        maxLength={60}
+                        required={!isLogin}
+                        autoComplete="name"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -288,7 +316,10 @@ const AuthPage = () => {
               <p className="text-muted-foreground">
                 {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                 <button
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setName("");
+                  }}
                   className="text-primary hover:underline font-medium"
                 >
                   {isLogin ? "Sign up" : "Sign in"}
