@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
   ArrowLeft, 
   Mail, 
   Lock, 
+  User,
   Sparkles,
   Check
 } from "lucide-react";
@@ -22,6 +23,7 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -44,11 +46,23 @@ const AuthPage = () => {
         });
         navigate("/dashboard");
       } else {
+        const trimmedName = name.trim();
+        if (trimmedName.length < 2 || trimmedName.length > 60) {
+          toast({
+            variant: "destructive",
+            title: "Invalid name",
+            description: "Please enter a name between 2 and 60 characters.",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
+            data: { name: trimmedName },
           },
         });
         
