@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
@@ -13,6 +13,34 @@ const moodScoreMap: Record<string, number> = {
   happy: 3, calm: 2.5, neutral: 1.5, anxious: 0.5, sad: 0.5, angry: 0,
 };
 
+type HeatmapDay = {
+  date: Date;
+  dateStr: string;
+  score: number;
+  log: DailyLog | null;
+  inYear: boolean;
+  isFuture: boolean;
+};
+
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const weekdayLabels = ["", "Mon", "", "Wed", "", "Fri", ""];
+const dayMs = 24 * 60 * 60 * 1000;
+
+function getLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDaysBetween(start: Date, end: Date): number {
+  return Math.round(
+    (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
+      Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) /
+      dayMs
+  );
+}
+
 function calculateWellnessScore(log: DailyLog): number {
   let score = 0;
   // Sleep quality (0-100 → 0-4)
@@ -24,13 +52,15 @@ function calculateWellnessScore(log: DailyLog): number {
   return Math.min(10, Math.round(score));
 }
 
-function getHeatColor(value: number): string {
-  if (value === 0) return "bg-muted/20";
-  if (value <= 2) return "bg-success/15";
-  if (value <= 4) return "bg-success/30";
-  if (value <= 6) return "bg-success/45";
-  if (value <= 8) return "bg-success/65";
-  return "bg-success/90";
+function getHeatColor(day: HeatmapDay): string {
+  if (!day.inYear) return "bg-transparent border-transparent";
+  if (day.isFuture) return "bg-muted/10 border-border/30 opacity-50";
+  if (!day.log || day.score === 0) return "bg-muted/20 border-border/40";
+  if (day.score <= 2) return "bg-destructive/55 border-destructive/50";
+  if (day.score <= 4) return "bg-warning/55 border-warning/45";
+  if (day.score <= 6) return "bg-primary/50 border-primary/45";
+  if (day.score <= 8) return "bg-success/65 border-success/50";
+  return "bg-success/90 border-success/70";
 }
 
 function getMoodLabel(tag: string | null): string {
@@ -48,55 +78,78 @@ function getCravingLabel(intensity: number | null): string {
 export function YearHeatmap({ logs }: YearHeatmapProps) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
 
-  // Build a lookup map from logs
   const logMap = useMemo(() => {
     const map = new Map<string, DailyLog>();
     logs.forEach((log) => map.set(log.log_date, log));
     return map;
   }, [logs]);
 
-  // Generate 365 days of data
-  const { days, weeks, goodDays } = useMemo(() => {
+  const { days, weeks, loggedDays, elapsedDays, totalYearDays, currentYear, monthLabels } = useMemo(() => {
     const today = new Date();
-    const allDays: { date: Date; dateStr: string; score: number; log: DailyLog | null }[] = [];
+    const year = today.getFullYear();
+    const todayStart = new Date(year, today.getMonth(), today.getDate());
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year, 11, 31);
+    const firstWeekdayOffset = yearStart.getDay();
+    const yearDayCount = getDaysBetween(yearStart, yearEnd) + 1;
+    const cellCount = Math.ceil((firstWeekdayOffset + yearDayCount) / 7) * 7;
+    const allDays: HeatmapDay[] = [];
 
-    for (let i = 364; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split("T")[0];
-      const log = logMap.get(dateStr) || null;
-      const score = log ? calculateWellnessScore(log) : 0;
-      allDays.push({ date, dateStr, score, log });
+    for (let cellIndex = 0; cellIndex < cellCount; cellIndex++) {
+      const dateOffset = cellIndex - firstWeekdayOffset;
+      const date = new Date(year, 0, 1 + dateOffset);
+      const inYear = dateOffset >= 0 && dateOffset < yearDayCount;
+      const isFuture = inYear && date.getTime() > todayStart.getTime();
+      const dateStr = getLocalDateKey(date);
+      const log = inYear && !isFuture ? logMap.get(dateStr) || null : null;
+      allDays.push({
+        date,
+        dateStr,
+        score: log ? calculateWellnessScore(log) : 0,
+        log,
+        inYear,
+        isFuture,
+      });
     }
 
-    const weekGroups: typeof allDays[] = [];
+    const weekGroups: HeatmapDay[][] = [];
     for (let i = 0; i < allDays.length; i += 7) {
       weekGroups.push(allDays.slice(i, i + 7));
     }
 
+    const monthColumns = monthNames.map((label, monthIndex) => {
+      const monthStart = new Date(year, monthIndex, 1);
+      const column = Math.floor((firstWeekdayOffset + getDaysBetween(yearStart, monthStart)) / 7);
+      return { label, column };
+    });
+
     return {
       days: allDays,
       weeks: weekGroups,
-      goodDays: allDays.filter((d) => d.score > 0).length,
+      loggedDays: allDays.filter((d) => d.inYear && !d.isFuture && d.log).length,
+      elapsedDays: getDaysBetween(yearStart, todayStart) + 1,
+      totalYearDays: yearDayCount,
+      currentYear: year,
+      monthLabels: monthColumns,
     };
   }, [logMap]);
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  const handleHover = (e: React.MouseEvent, day: typeof days[0]) => {
-    if (!day.log) {
+  const handleHover = (e: MouseEvent<HTMLElement>, day: typeof days[0]) => {
+    if (!day.inYear) {
       setTooltip(null);
       return;
     }
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const sleepLabel = day.log.sleep_hours ? `${day.log.sleep_hours.toFixed(1)}h Sleep` : "No sleep data";
-    const moodLabel = `Mood: ${getMoodLabel(day.log.mood_tag)}`;
-    const cravingLabel = `Cravings: ${getCravingLabel(day.log.craving_intensity)}`;
-    const dateLabel = day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dateLabel = day.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+    const content = day.isFuture
+      ? `${dateLabel}: Future date`
+      : day.log
+      ? `${dateLabel}: Score ${day.score}/10, ${day.log.sleep_hours ? `${day.log.sleep_hours.toFixed(1)}h Sleep` : "No sleep data"}, Mood: ${getMoodLabel(day.log.mood_tag)}, Cravings: ${getCravingLabel(day.log.craving_intensity)}`
+      : `${dateLabel}: No wellness log`;
     setTooltip({
-      x: rect.left + rect.width / 2,
+      x: Math.min(Math.max(rect.left + rect.width / 2, 150), window.innerWidth - 150),
       y: rect.top - 8,
-      content: `${dateLabel}: ${sleepLabel}, ${moodLabel}, ${cravingLabel}`,
+      content,
     });
   };
 
@@ -109,48 +162,67 @@ export function YearHeatmap({ logs }: YearHeatmapProps) {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Consistency Tracker</h3>
-          <p className="text-sm text-muted-foreground">Real wellness scores from your logs</p>
+          <h3 className="text-lg font-semibold text-foreground">Consistency Tracker {currentYear}</h3>
+          <p className="text-sm text-muted-foreground">Current year wellness activity</p>
         </div>
         <div className="text-right">
-          <span className="text-2xl font-bold text-success">{goodDays}</span>
-          <span className="text-muted-foreground"> / 365 days</span>
+          <span className="text-2xl font-bold text-success">{loggedDays}</span>
+          <span className="text-muted-foreground"> / {elapsedDays} days</span>
         </div>
       </div>
 
-      {/* Month labels */}
-      <div className="flex justify-between text-xs text-muted-foreground px-1">
-        {months.map((month) => (
-          <span key={month}>{month}</span>
-        ))}
-      </div>
-
-      {/* Heatmap grid */}
-      <div className="flex gap-[3px] overflow-x-auto pb-2">
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="flex flex-col gap-[3px]">
-            {week.map((day, dayIndex) => (
-              <motion.div
-                key={day.dateStr}
-                className={cn(
-                  "w-3 h-3 rounded-sm cursor-pointer transition-colors",
-                  getHeatColor(day.score)
-                )}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: (weekIndex * 7 + dayIndex) * 0.0008 }}
-                onMouseEnter={(e) => handleHover(e, day)}
-                onMouseLeave={() => setTooltip(null)}
-              />
+      <div className="overflow-x-auto pb-2">
+        <div className="min-w-max">
+          <div
+            className="ml-8 grid gap-[3px] text-xs text-muted-foreground"
+            style={{ gridTemplateColumns: `repeat(${weeks.length}, 0.75rem)` }}
+          >
+            {monthLabels.map((month) => (
+              <span key={month.label} className="whitespace-nowrap" style={{ gridColumnStart: month.column + 1 }}>
+                {month.label}
+              </span>
             ))}
           </div>
-        ))}
+
+          <div className="mt-2 flex gap-2">
+            <div className="grid grid-rows-7 gap-[3px] text-[10px] leading-3 text-muted-foreground w-6 shrink-0">
+              {weekdayLabels.map((label, index) => (
+                <span key={`${label}-${index}`} className="h-3 flex items-center justify-end pr-1">
+                  {label}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex gap-[3px]">
+              {weeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="flex flex-col gap-[3px]">
+                  {week.map((day, dayIndex) => (
+                    <motion.div
+                      key={`${day.dateStr}-${weekIndex}-${dayIndex}`}
+                      className={cn(
+                        "w-3 h-3 rounded-[3px] border transition-colors",
+                        day.inYear ? "cursor-pointer" : "cursor-default",
+                        getHeatColor(day)
+                      )}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: (weekIndex * 7 + dayIndex) * 0.0008 }}
+                      onMouseEnter={(e) => handleHover(e, day)}
+                      onMouseLeave={() => setTooltip(null)}
+                      aria-label={day.inYear ? `${day.dateStr} wellness score ${day.score}` : "Outside current year"}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 px-3 py-2 text-xs rounded-lg bg-card border border-border shadow-lg text-foreground pointer-events-none whitespace-nowrap"
+          className="fixed z-50 max-w-80 px-3 py-2 text-xs rounded-lg bg-card border border-border shadow-lg text-foreground pointer-events-none"
           style={{
             left: tooltip.x,
             top: tooltip.y,
@@ -163,13 +235,16 @@ export function YearHeatmap({ logs }: YearHeatmapProps) {
 
       {/* Legend */}
       <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-        <span>Less</span>
+        <span>No data</span>
         <div className="flex gap-1">
-          {[0, 2, 4, 6, 8, 10].map((value) => (
-            <div key={value} className={cn("w-3 h-3 rounded-sm", getHeatColor(value))} />
-          ))}
+          <div className="w-3 h-3 rounded-[3px] border bg-muted/20 border-border/40" />
+          {[2, 4, 6, 8, 10].map((value) => {
+            const sampleDay: HeatmapDay = { date: new Date(), dateStr: "", score: value, log: {} as DailyLog, inYear: true, isFuture: false };
+            return <div key={value} className={cn("w-3 h-3 rounded-[3px] border", getHeatColor(sampleDay))} />;
+          })}
         </div>
-        <span>More</span>
+        <span>High</span>
+        <span className="ml-3">{totalYearDays}-day year</span>
       </div>
     </motion.div>
   );
