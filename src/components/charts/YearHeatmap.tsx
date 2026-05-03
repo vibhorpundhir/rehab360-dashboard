@@ -1,5 +1,6 @@
 import { useMemo, useState, type MouseEvent } from "react";
 import { motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -77,6 +78,7 @@ function getCravingLabel(intensity: number | null): string {
 
 export function YearHeatmap({ logs }: YearHeatmapProps) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
+  const [selectedDay, setSelectedDay] = useState<HeatmapDay | null>(null);
 
   const logMap = useMemo(() => {
     const map = new Map<string, DailyLog>();
@@ -133,6 +135,11 @@ export function YearHeatmap({ logs }: YearHeatmapProps) {
       monthLabels: monthColumns,
     };
   }, [logMap]);
+
+  const handleClick = (day: HeatmapDay) => {
+    if (!day.inYear) return;
+    setSelectedDay((prev) => (prev?.dateStr === day.dateStr ? null : day));
+  };
 
   const handleHover = (e: MouseEvent<HTMLElement>, day: typeof days[0]) => {
     if (!day.inYear) {
@@ -202,13 +209,15 @@ export function YearHeatmap({ logs }: YearHeatmapProps) {
                       className={cn(
                         "w-3 h-3 rounded-[3px] border transition-colors",
                         day.inYear ? "cursor-pointer" : "cursor-default",
-                        getHeatColor(day)
+                      getHeatColor(day),
+                      selectedDay?.dateStr === day.dateStr && "ring-2 ring-primary ring-offset-1 ring-offset-background"
                       )}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: (weekIndex * 7 + dayIndex) * 0.0008 }}
                       onMouseEnter={(e) => handleHover(e, day)}
                       onMouseLeave={() => setTooltip(null)}
+                     onClick={() => handleClick(day)}
                       aria-label={day.inYear ? `${day.dateStr} wellness score ${day.score}` : "Outside current year"}
                     />
                   ))}
@@ -246,6 +255,76 @@ export function YearHeatmap({ logs }: YearHeatmapProps) {
         <span>High</span>
         <span className="ml-3">{totalYearDays}-day year</span>
       </div>
+
+      {/* Selected Day Detail Panel */}
+      <AnimatePresence>
+        {selectedDay && selectedDay.inYear && (
+          <motion.div
+            key={selectedDay.dateStr}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 p-4 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-foreground">
+                  {selectedDay.date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                </h4>
+                {selectedDay.isFuture ? (
+                  <span className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted/20">Future</span>
+                ) : selectedDay.log ? (
+                  <span className="text-xs font-bold text-success px-2 py-1 rounded-full bg-success/15">Score: {selectedDay.score}/10</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted/20">No data</span>
+                )}
+              </div>
+              {selectedDay.log && !selectedDay.isFuture ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-2 rounded-lg bg-muted/10">
+                    <p className="text-muted-foreground mb-0.5">Sleep</p>
+                    <p className="font-medium text-foreground">{selectedDay.log.sleep_hours ? `${selectedDay.log.sleep_hours}h` : "—"} {selectedDay.log.sleep_quality ? `(${selectedDay.log.sleep_quality}%)` : ""}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/10">
+                    <p className="text-muted-foreground mb-0.5">Mood</p>
+                    <p className="font-medium text-foreground">{getMoodLabel(selectedDay.log.mood_tag)}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/10">
+                    <p className="text-muted-foreground mb-0.5">Cravings</p>
+                    <p className="font-medium text-foreground">{getCravingLabel(selectedDay.log.craving_intensity)}{selectedDay.log.craving_trigger ? ` — ${selectedDay.log.craving_trigger}` : ""}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/10">
+                    <p className="text-muted-foreground mb-0.5">Water</p>
+                    <p className="font-medium text-foreground">{selectedDay.log.water_glasses ?? 0} glasses</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/10">
+                    <p className="text-muted-foreground mb-0.5">Exercise</p>
+                    <p className="font-medium text-foreground">{selectedDay.log.exercise_minutes ?? 0} min</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/10">
+                    <p className="text-muted-foreground mb-0.5">Meditation</p>
+                    <p className="font-medium text-foreground">{selectedDay.log.meditation_minutes ?? 0} min</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/10">
+                    <p className="text-muted-foreground mb-0.5">Meds</p>
+                    <p className="font-medium text-foreground">{selectedDay.log.took_meds ? "✅ Taken" : "❌ Not taken"}</p>
+                  </div>
+                  {selectedDay.log.notes && (
+                    <div className="p-2 rounded-lg bg-muted/10 col-span-2 sm:col-span-1">
+                      <p className="text-muted-foreground mb-0.5">Notes</p>
+                      <p className="font-medium text-foreground truncate">{selectedDay.log.notes}</p>
+                    </div>
+                  )}
+                </div>
+              ) : !selectedDay.isFuture ? (
+                <p className="text-sm text-muted-foreground">No wellness data logged for this day.</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">This date hasn't arrived yet.</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
