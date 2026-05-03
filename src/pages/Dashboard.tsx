@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { MotionCard } from "@/components/motion/MotionCard";
 import { WellnessScore } from "@/components/widgets/WellnessScore";
 import { QuickLogger } from "@/components/widgets/QuickLogger";
@@ -13,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedMood, setSelectedMood] = useState<string>();
   const { logs, addLog } = useData();
   const last7Days = getLogsForDays(logs, 7);
@@ -57,12 +60,37 @@ const Dashboard = () => {
     );
   }, [last7Days]);
 
-  const handleQuickLog = (id: string) => {
+  const handleQuickLog = async (id: string) => {
     const today = new Date().toISOString().split("T")[0];
-    if (id === "sleep") addLog({ log_date: today, sleep_hours: 7, sleep_quality: 70 });
-    else if (id === "mood") addLog({ log_date: today, mood_tag: "calm" });
-    else if (id === "craving") addLog({ log_date: today, craving_intensity: 3 });
-    else if (id === "water") addLog({ log_date: today, water_glasses: 8 });
+    try {
+      if (id === "journal") {
+        navigate("/journal");
+        return;
+      }
+      if (id === "sleep") {
+        await addLog({ log_date: today, sleep_hours: 7, sleep_quality: 70 });
+        toast.success("Logged: 7h sleep, 70% quality");
+      } else if (id === "mood") {
+        await addLog({ log_date: today, mood_tag: "calm" });
+        toast.success("Logged: Mood — Calm 😌");
+      } else if (id === "craving") {
+        await addLog({ log_date: today, craving_intensity: 3 });
+        toast.success("Logged: Craving intensity 3/10");
+      } else if (id === "water") {
+        const todayLog = logs.find((l) => l.log_date === today);
+        const currentGlasses = todayLog?.water_glasses ?? 0;
+        await addLog({ log_date: today, water_glasses: currentGlasses + 1 });
+        toast.success(`Logged: ${currentGlasses + 1} glass${currentGlasses + 1 !== 1 ? "es" : ""} of water 💧`);
+      } else if (id === "exercise") {
+        await addLog({ log_date: today, exercise_minutes: 30 });
+        toast.success("Logged: 30 min exercise 💪");
+      } else if (id === "meds") {
+        await addLog({ log_date: today, took_meds: true });
+        toast.success("Logged: Meds taken 💊");
+      }
+    } catch {
+      toast.error("Failed to save log");
+    }
   };
 
   const kpis = [

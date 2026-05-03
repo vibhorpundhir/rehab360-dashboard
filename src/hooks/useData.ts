@@ -74,7 +74,7 @@ export function useData(): UseDataReturn {
         .select("*")
         .eq("user_id", session.user.id)
         .order("log_date", { ascending: false })
-        .limit(30);
+        .limit(1000);
 
       if (fetchError) throw fetchError;
 
