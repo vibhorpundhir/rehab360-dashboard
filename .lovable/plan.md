@@ -1,54 +1,39 @@
-## Goal
-Capture a user's **Name** during signup so the app (sidebar, greeting, settings, clinical reports) shows a real name instead of falling back to the email prefix.
 
-## Why this works cleanly
-- The DB trigger `handle_new_user()` already reads `NEW.raw_user_meta_data->>'name'` and writes it into `profiles.name`. No DB changes needed.
-- `AuthContext.buildProfile` already reads `authUser.user_metadata?.name` first, then falls back to email prefix. So as soon as we pass `name` in signup metadata, it lights up everywhere automatically.
-- Login flow stays untouched — still just email + password (per the previous "frictionless auth" requirement).
+## What will change
 
-## Changes — `src/pages/AuthPage.tsx`
+### 1. Consistency Tracker -- Clickable day detail panel
 
-1. **State**
-   - Add `const [name, setName] = useState("");`
-   - Add `User` icon import from lucide-react.
+Currently the heatmap only shows a hover tooltip. We will add a click-to-select interaction:
 
-2. **Signup-only Name field** (rendered only when `!isLogin`)
-   - Placed above the Email field.
-   - Same glass input style as Email/Password (icon-prefixed, `bg-secondary/50 border-white/10`).
-   - `required` only in signup mode; trimmed before submit.
-   - Min length 2, max 60 (lightweight client-side validation with a toast on failure — no schema lib needed for one field).
+- Clicking a heatmap cell selects it and shows a **detail panel** below the grid with:
+  - Full date (e.g. "Saturday, May 3, 2026")
+  - Wellness score out of 10
+  - All logged entries for that day: Sleep hours/quality, Mood, Craving intensity/trigger, Water, Exercise, Meditation, Meds, Notes
+  - If no log exists: "No data logged for this day"
+- The selected cell gets a visible ring highlight
+- Clicking again or clicking another cell toggles selection
 
-3. **Submit handler**
-   - In the signup branch, pass metadata:
-     ```ts
-     await supabase.auth.signUp({
-       email,
-       password,
-       options: {
-         emailRedirectTo: window.location.origin,
-         data: { name: name.trim() },
-       },
-     });
-     ```
-   - Reset `name` on toggling between Login/Signup so stale values don't leak.
-   - Login branch is unchanged.
+### 2. Consistency Tracker -- Fetch full year of data
 
-4. **Toggle behavior**
-   - When user switches from Signup → Login, clear the `name` state.
+The `useData` hook currently limits fetches to 30 rows (`LIMIT 30`). The heatmap covers the entire year, so most cells show empty even if data exists. We will:
 
-## Why no other files need to change
-- `AuthContext.tsx` already prefers `user_metadata.name` → sidebar, greeting, settings display name will instantly use the entered name.
-- `handle_new_user` trigger writes `name` into `public.profiles` automatically on signup.
-- Settings page already syncs display-name updates back to `auth.updateUser({ data: { name } })`, so the same field stays editable later.
+- Increase the fetch limit to 1000 (covers a full year)
+- This ensures the heatmap accurately reflects all logged days
 
-## Out of scope (intentionally)
-- No "Forgot password" / magic link UI (kept frictionless per prior decision).
-- No DB migrations, no RLS changes, no edge function changes.
-- Login form stays as **Email + Password** only.
+### 3. Quick Log -- Make buttons actually work with feedback
 
-## Acceptance criteria
-- Signup screen shows three fields: **Name**, **Email**, **Password**.
-- Submitting with an empty/too-short name shows a toast and blocks signup.
-- After successful signup, the user lands on `/dashboard` and the sidebar/greeting shows the entered name (not the email prefix).
-- Querying `profiles` for the new user shows `name` populated.
-- Login screen is unchanged (Email + Password only).
+The Quick Log buttons call `handleQuickLog` which silently calls `addLog` with hardcoded values and no user feedback. We will:
+
+- Add **toast notifications** (using existing sonner) on each quick log tap confirming what was logged (e.g. "Logged: 8 glasses of water")
+- For **Craving**, **Mood**, **Sleep** -- these already log preset values, we keep them but add toasts
+- For **Journal** -- navigate to the Unified Journal page
+- For **Water** -- increment today's water count by 1 glass instead of setting to 8
+- For **Exercise** -- log 30 min exercise
+- For **Meds** -- toggle `took_meds` to true
+
+### Technical details
+
+**Files modified:**
+- `src/components/charts/YearHeatmap.tsx` -- Add `selectedDay` state, click handler, and detail panel rendering below the grid
+- `src/hooks/useData.ts` -- Change `.limit(30)` to `.limit(1000)` on the fetch query
+- `src/pages/Dashboard.tsx` -- Update `handleQuickLog` to add toast feedback for each action, handle journal navigation, fix water increment logic
